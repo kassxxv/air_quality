@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Air Quality Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#f2ede3; --card:#fff; --border:#e5ddd0; --shadow:0 2px 14px rgba(0,0,0,.06);
+  --text:#2a2520; --muted:#8a8078; --radius:14px;
+  --good:#5a9e4a; --mod:#c8a030; --alarm:#d94040;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+
+/* NAV */
+nav{display:flex;align-items:center;padding:0 28px;height:50px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:7px;font-weight:600;font-size:14px}
+.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--mod)}
+.logo sub{font-size:10px;color:var(--muted);font-weight:400;margin-left:1px}
+.tabs{display:flex;margin-left:36px}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:14px 18px;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit;transition:.15s}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--mod);font-weight:500}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:10px;color:var(--muted)}
+.conn{display:flex;align-items:center;gap:5px;font-weight:700;font-size:10px;letter-spacing:.06em}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:#ccc;transition:.3s}
+.conn.on .conn-dot{background:var(--good)}
+.conn.on{color:var(--good)}
+.upd{text-align:right;line-height:1.5}
+
+/* TABS */
+.tab{display:none;padding:24px 28px}.tab.active{display:block}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border)}
+
+/* ── OVERVIEW ── */
+.hero{background:linear-gradient(135deg,#c8a030 0%,#9a7020 100%);border-radius:var(--radius);padding:26px 30px;color:#fff;display:grid;grid-template-columns:170px 1fr;gap:20px;margin-bottom:18px}
+.hero-left{display:flex;flex-direction:column;justify-content:center}
+.hero-icon{font-size:26px;margin-bottom:6px;opacity:.9}
+.hero-score{font-size:60px;font-weight:200;line-height:1;letter-spacing:-2px}
+.hero-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;opacity:.65;margin:4px 0 10px}
+.hero-badge{display:inline-block;padding:2px 11px;border-radius:20px;font-size:10px;background:rgba(0,0,0,.2)}
+.hero-right{display:flex;flex-direction:column;justify-content:center}
+.hero-row{display:flex;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.12)}
+.hero-row:last-child{border-bottom:none}
+.hero-row-info{flex:1}
+.hero-row-name{font-size:9px;letter-spacing:.12em;text-transform:uppercase;opacity:.6;margin-bottom:3px}
+.hero-row-val{font-size:26px;font-weight:200;letter-spacing:-.5px}
+.hero-row-val span{font-size:11px;opacity:.6;margin-left:2px}
+.spark-sm{width:95px;height:34px}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.metric-card{display:flex;align-items:center;justify-content:space-between;padding:18px 22px}
+.mc-name{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.mc-val{font-size:30px;font-weight:200;letter-spacing:-1px}
+.mc-val span{font-size:12px;color:var(--muted);margin-left:2px}
+.spark-md{width:88px;height:38px}
+
+.gauge-card{padding:18px 26px;margin-bottom:14px}
+.gauge-hdr{display:flex;justify-content:space-between;margin-bottom:12px;font-size:10px}
+.gauge-hdr .name{letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.gauge-hdr .val{color:var(--text)}
+.gauge-hdr .val span{color:var(--muted);font-size:10px;margin-left:2px}
+.gauge-track{position:relative;height:5px;border-radius:3px;background:linear-gradient(to right,#5a9e4a,#a8c040,#e8b030,#e06040,#d04040);margin-bottom:8px}
+.gauge-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid #999;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:left .5s}
+.gauge-scale{display:flex;justify-content:space-between;font-size:9px;color:var(--muted)}
+
+/* ── HISTORY ── */
+.hist-layout{display:grid;grid-template-columns:188px 1fr 188px;gap:16px}
+.cal-panel{padding:18px}
+.cal-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.cal-sub{font-size:9px;color:var(--muted);margin-bottom:14px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-hdr{font-size:8px;text-align:center;color:var(--muted);padding:2px 0}
+.cal-day{aspect-ratio:1;border-radius:3px;background:var(--border);cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.8);transition:.15s}
+.cal-day:hover{opacity:.8}.cal-day.empty{background:transparent;cursor:default}
+.cal-day.good{background:var(--good)}.cal-day.mod{background:var(--mod)}.cal-day.alarm{background:var(--alarm)}
+.cal-day.sel{outline:2px solid var(--text);outline-offset:1px}
+.cal-legend{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.cal-leg{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--muted)}
+.cal-leg-dot{width:7px;height:7px;border-radius:2px}
+.day-popup{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:none}
+.day-popup.show{display:block}
+.dp-title{font-size:11px;font-weight:600;margin-bottom:6px}
+.dp-stats{display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:10px;color:var(--muted);margin-bottom:8px}
+
+.hist-main{}
+.hist-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.hist-title{font-size:15px;font-weight:500}
+.hist-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.filters{display:flex;gap:3px}
+.f-btn{padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted)}
+.f-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+.hchart-card{padding:14px 18px;margin-bottom:10px}
+.hchart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.hchart-label{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.hchart-dot{width:7px;height:7px;border-radius:50%}
+.hchart-stats{display:flex;gap:12px;font-size:10px;color:var(--muted)}
+.hchart-stats .now{color:var(--text);font-weight:600;font-size:11px}
+
+.tod-panel{padding:18px}
+.tod-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.tod-sub{font-size:10px;color:var(--muted);margin-top:8px}
+
+/* ── CONTROLS ── */
+.ctrl-hdr{margin-bottom:20px}
+.ctrl-title{font-size:18px;font-weight:500}
+.ctrl-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ctrl-card{padding:22px}
+.ctrl-card-hdr{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px}
+.ctrl-icon{width:34px;height:34px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.ctrl-card-name{font-size:13px;font-weight:500}
+.ctrl-card-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.seg-group{display:grid;grid-template-columns:1fr 1fr 1fr;border-radius:7px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}
+.seg{padding:7px;border:none;background:none;font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted);border-right:1px solid var(--border)}
+.seg:last-child{border-right:none}.seg.active{background:var(--text);color:#fff}
+.ctrl-status{font-size:10px;color:var(--muted)}
+.btn-full{width:100%;padding:9px;border-radius:7px;border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;font-family:inherit;color:var(--text);margin-bottom:8px;transition:.15s}
+.btn-full:hover{background:var(--bg)}.btn-full.on{background:var(--alarm);color:#fff;border-color:var(--alarm)}
+
+.sld-card{padding:22px}
+.sld-name{font-size:13px;font-weight:500}
+.sld-sub{font-size:10px;color:var(--muted);margin-bottom:14px}
+.sld-wrap{position:relative;padding-top:22px;margin-bottom:6px}
+.sld-bubble{position:absolute;top:0;transform:translateX(-50%);background:var(--text);color:#fff;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;pointer-events:none;white-space:nowrap}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,#5a9e4a,#a8c040,#e8b030,#e06040,#d04040);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid #999;box-shadow:0 1px 4px rgba(0,0,0,.2);cursor:pointer}
+.sld-scale{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:10px}
+.sld-info{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-bottom:10px}
+.rbadge{display:flex;align-items:center;gap:6px;font-size:10px;padding:3px 9px;border-radius:5px;background:var(--bg)}
+.rbadge.ok{background:rgba(90,158,74,.1);color:var(--good)}.rbadge.alarm{background:rgba(217,64,64,.1);color:var(--alarm)}
+.btn-apply{float:right;padding:7px 18px;border-radius:7px;border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;font-family:inherit}
+.btn-apply:hover{background:var(--bg)}
+
+.bot-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.status-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.status-tbl td{padding:5px 0;border-bottom:1px solid var(--border)}
+.status-tbl td:first-child{color:var(--muted);width:110px}
+.status-tbl td:last-child{text-align:right;font-family:monospace;font-size:10px}
+.status-tbl tr:last-child td{border-bottom:none}
+.log-list{display:flex;flex-direction:column;gap:5px;font-size:11px}
+.log-entry{display:flex;gap:10px}
+.log-ts{color:var(--muted);font-family:monospace;flex-shrink:0;font-size:10px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Air Quality <sub>ESP32</sub>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="overview" onclick="showTab(this,'overview')">Overview</button>
+    <button class="tab-btn" data-tab="history"  onclick="showTab(this,'history')">History</button>
+    <button class="tab-btn" data-tab="controls" onclick="showTab(this,'controls')">Controls</button>
+  </div>
+  <div class="nav-right">
+    <div class="conn" id="conn"><div class="conn-dot"></div><span id="conn-txt">WAITING</span></div>
+    <div class="upd">LAST UPDATE<br><span id="upd-time">—</span></div>
+  </div>
+</nav>
+
+<!-- ── OVERVIEW ─────────────────────────────────────────────────────────── -->
+<div class="tab active" id="tab-overview">
+
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-icon">🌿</div>
+      <div class="hero-score" id="h-score">—</div>
+      <div class="hero-lbl">Air Score</div>
+      <div class="hero-badge" id="h-badge">—</div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-row">
+        <div class="hero-row-info">
+          <div class="hero-row-name">Carbon Dioxide</div>
+          <div class="hero-row-val"><span id="h-co2">—</span><span>ppm</span></div>
+        </div>
+        <canvas class="spark-sm" id="sp-co2"></canvas>
+      </div>
+      <div class="hero-row">
+        <div class="hero-row-info">
+          <div class="hero-row-name">Fine Particles</div>
+          <div class="hero-row-val"><span id="h-pm25">—</span><span>μg/m³</span></div>
+        </div>
+        <canvas class="spark-sm" id="sp-pm25"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card metric-card">
+      <div><div class="mc-name">Temperature</div><div class="mc-val"><span id="v-temp">—</span><span>°C</span></div></div>
+      <canvas class="spark-md" id="sp-temp"></canvas>
+    </div>
+    <div class="card metric-card">
+      <div><div class="mc-name">Humidity</div><div class="mc-val"><span id="v-hum">—</span><span>%RH</span></div></div>
+      <canvas class="spark-md" id="sp-hum"></canvas>
+    </div>
+  </div>
+
+  <div class="card gauge-card">
+    <div class="gauge-hdr"><div class="name">CO₂ Level</div><div class="val"><span id="g-co2">—</span><span>ppm</span></div></div>
+    <div class="gauge-track"><div class="gauge-dot" id="gd-co2" style="left:0%"></div></div>
+    <div class="gauge-scale"><span>400</span><span>600</span><span>800</span><span>1000</span><span>1200</span></div>
+  </div>
+
+  <div class="card gauge-card" style="margin-bottom:0">
+    <div class="gauge-hdr"><div class="name">PM2.5 Level</div><div class="val"><span id="g-pm25">—</span><span>μg/m³</span></div></div>
+    <div class="gauge-track"><div class="gauge-dot" id="gd-pm25" style="left:0%"></div></div>
+    <div class="gauge-scale"><span>0</span><span>20</span><span>35</span><span>55</span><span>90</span></div>
+  </div>
+
+</div>
+
+<!-- ── HISTORY ──────────────────────────────────────────────────────────── -->
+<div class="tab" id="tab-history">
+  <div class="hist-layout">
+
+    <div class="card cal-panel">
+      <div class="cal-title">Monthly Air Quality</div>
+      <div class="cal-sub">Daily score — click to expand</div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <div class="cal-leg"><div class="cal-leg-dot" style="background:var(--good)"></div>Good</div>
+        <div class="cal-leg"><div class="cal-leg-dot" style="background:var(--mod)"></div>Mod</div>
+        <div class="cal-leg"><div class="cal-leg-dot" style="background:var(--alarm)"></div>Alarm</div>
+      </div>
+      <div class="day-popup" id="day-popup">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="dp-title" id="dp-title">—</div>
+          <button onclick="closePopup()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px">✕</button>
+        </div>
+        <div class="dp-stats" id="dp-stats"></div>
+        <canvas id="dp-chart" height="70"></canvas>
+      </div>
+    </div>
+
+    <div class="hist-main">
+      <div class="hist-hdr">
+        <div><div class="hist-title">Sensor History</div><div class="hist-sub" id="hist-sub">—</div></div>
+        <div class="filters">
+          <button class="f-btn" onclick="setFilter(this,'30s')">30s</button>
+          <button class="f-btn" onclick="setFilter(this,'1m')">1m</button>
+          <button class="f-btn active" onclick="setFilter(this,'2m')">2m</button>
+          <button class="f-btn" onclick="setFilter(this,'all')">All</button>
+        </div>
+      </div>
+
+      <div class="card hchart-card">
+        <div class="hchart-hdr">
+          <div class="hchart-label"><div class="hchart-dot" style="background:#5a7e5a"></div>CO₂, ppm</div>
+          <div class="hchart-stats"><span class="now" id="hs-co2-now">—</span><span>MIN <b id="hs-co2-min">—</b></span><span>MAX <b id="hs-co2-max">—</b></span><span>AVG <b id="hs-co2-avg">—</b></span></div>
+        </div>
+        <canvas id="hc-co2" height="65"></canvas>
+      </div>
+      <div class="card hchart-card">
+        <div class="hchart-hdr">
+          <div class="hchart-label"><div class="hchart-dot" style="background:#7a6ea8"></div>PM2.5, μg/m³</div>
+          <div class="hchart-stats"><span class="now" id="hs-pm25-now">—</span><span>MIN <b id="hs-pm25-min">—</b></span><span>MAX <b id="hs-pm25-max">—</b></span><span>AVG <b id="hs-pm25-avg">—</b></span></div>
+        </div>
+        <canvas id="hc-pm25" height="65"></canvas>
+      </div>
+      <div class="card hchart-card">
+        <div class="hchart-hdr">
+          <div class="hchart-label"><div class="hchart-dot" style="background:#c8853a"></div>Temperature, °C</div>
+          <div class="hchart-stats"><span class="now" id="hs-temp-now">—</span><span>MIN <b id="hs-temp-min">—</b></span><span>MAX <b id="hs-temp-max">—</b></span><span>AVG <b id="hs-temp-avg">—</b></span></div>
+        </div>
+        <canvas id="hc-temp" height="65"></canvas>
+      </div>
+      <div class="card hchart-card">
+        <div class="hchart-hdr">
+          <div class="hchart-label"><div class="hchart-dot" style="background:#4a7abf"></div>Humidity, %RH</div>
+          <div class="hchart-stats"><span class="now" id="hs-hum-now">—</span><span>MIN <b id="hs-hum-min">—</b></span><span>MAX <b id="hs-hum-max">—</b></span><span>AVG <b id="hs-hum-avg">—</b></span></div>
+        </div>
+        <canvas id="hc-hum" height="65"></canvas>
+      </div>
+    </div>
+
+    <div class="card tod-panel">
+      <div class="tod-title">Time of Day</div>
+      <canvas id="tod-chart" height="180"></canvas>
+      <div class="tod-sub" id="tod-sub"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── CONTROLS ─────────────────────────────────────────────────────────── -->
+<div class="tab" id="tab-controls">
+  <div class="ctrl-hdr">
+    <div class="ctrl-title">Device Controls</div>
+    <div class="ctrl-sub">Commands sent to ESP32 via backend GET endpoint</div>
+  </div>
+
+  <div class="ctrl-grid">
+    <div class="card ctrl-card">
+      <div class="ctrl-card-hdr">
+        <div class="ctrl-icon">💡</div>
+        <div><div class="ctrl-card-name">Red LED</div><div class="ctrl-card-sub">GPIO 23 · OVERRIDE</div></div>
+      </div>
+      <div class="seg-group">
+        <button class="seg active" id="led-auto" onclick="setLed('auto',this)">AUTO</button>
+        <button class="seg" id="led-on"   onclick="setLed('on',this)">ON</button>
+        <button class="seg" id="led-off"  onclick="setLed('off',this)">OFF</button>
+      </div>
+      <div class="ctrl-status" id="led-status">Status: OFF (auto)</div>
+    </div>
+
+    <div class="card ctrl-card">
+      <div class="ctrl-card-hdr">
+        <div class="ctrl-icon">🔔</div>
+        <div><div class="ctrl-card-name">Buzzer</div><div class="ctrl-card-sub">GPIO 15 · 1000 Hz</div></div>
+      </div>
+      <button class="btn-full" id="buz-btn" onclick="toggleBuzzer()">▶ Force constant tone</button>
+      <div class="ctrl-status" id="buz-status">Mode: Auto (state machine)</div>
+    </div>
+
+    <div class="card sld-card">
+      <div class="sld-name">CO₂ Alarm Threshold</div>
+      <div class="sld-sub">Triggers RED LED + buzzer</div>
+      <div class="sld-wrap">
+        <div class="sld-bubble" id="co2-bub">1000 ppm</div>
+        <input type="range" id="co2-sld" min="400" max="1200" step="50" value="1000" oninput="moveBub('co2')">
+      </div>
+      <div class="sld-scale"><span>400 ppm</span><span>800 ppm</span><span>1200 ppm</span></div>
+      <div class="sld-info">
+        <span>Active: <b id="co2-act">1000 ppm</b></span>
+        <div class="rbadge ok" id="co2-rbadge">— · OK</div>
+      </div>
+      <button class="btn-apply" onclick="applyThr('co2')">Apply</button>
+      <div style="clear:both"></div>
+    </div>
+
+    <div class="card sld-card">
+      <div class="sld-name">PM2.5 Alarm Threshold</div>
+      <div class="sld-sub">Triggers RED LED + buzzer</div>
+      <div class="sld-wrap">
+        <div class="sld-bubble" id="pm25-bub">55 μg/m³</div>
+        <input type="range" id="pm25-sld" min="12" max="100" step="1" value="55" oninput="moveBub('pm25')">
+      </div>
+      <div class="sld-scale"><span>12 μg/m³</span><span>55 μg/m³</span><span>100 μg/m³</span></div>
+      <div class="sld-info">
+        <span>Active: <b id="pm25-act">55 μg/m³</b></span>
+        <div class="rbadge ok" id="pm25-rbadge">— · OK</div>
+      </div>
+      <button class="btn-apply" onclick="applyThr('pm25')">Apply</button>
+      <div style="clear:both"></div>
+    </div>
+  </div>
+
+  <div class="bot-grid">
+    <div class="card ctrl-card">
+      <div style="font-size:13px;font-weight:500;margin-bottom:14px">Device Status</div>
+      <table class="status-tbl">
+        <tr><td>CO₂ sensor</td><td>SCD40 · I2C 0x62</td></tr>
+        <tr><td>Dust sensor</td><td>PMS5003T · UART</td></tr>
+        <tr><td>Display</td><td>SSD1306 OLED 128×64</td></tr>
+        <tr><td>LEDs</td><td>G:18  Y:19  R:23</td></tr>
+        <tr><td>Buzzer</td><td>GPIO 15 · passive</td></tr>
+        <tr><td>POST cadence</td><td>every 5s</td></tr>
+        <tr><td>GET cadence</td><td>every 2s</td></tr>
+      </table>
+    </div>
+    <div class="card ctrl-card">
+      <div style="font-size:13px;font-weight:500;margin-bottom:14px">Command Log</div>
+      <div class="log-list" id="cmd-log">
+        <div class="log-entry"><span class="log-ts">—</span><span>Ready · listening for commands</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let hist = [], daily = {}, state = {co2_threshold:1000,pm25_threshold:55,buzzer:0};
+let activeTab = 'overview', filter = '2m', selDay = null, latest = null;
+const C = {};  // chart instances
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initSparklines();
+  initHistCharts();
+  initTodChart();
+  buildCal();
+  moveBub('co2'); moveBub('pm25');
+  fetchAll();
+  setInterval(fetchAll, 5000);
+});
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+function showTab(btn, name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  activeTab = name;
+  if (name === 'history') fetchHistory();
+}
+
+// ── Fetch ────────────────────────────────────────────────────────────────────
+async function fetchAll() {
+  try {
+    const d = await fetch('/api/status').then(r => r.json());
+    latest = d.latest; hist = d.history || []; state = d.state || state;
+    setConn(!!latest);
+    if (latest && latest.co2 > 0) { renderOverview(d); renderCtrlState(d.state, d.log); }
+    if (activeTab === 'history') fetchHistory();
+  } catch { setConn(false); }
+}
+
+async function fetchHistory() {
+  try {
+    const [h, dly] = await Promise.all([
+      fetch('/api/history').then(r => r.json()),
+      fetch('/api/daily').then(r => r.json()),
+    ]);
+    hist = h.history || []; daily = dly || {};
+    renderHistCharts(); renderCal(); renderTod();
+  } catch {}
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────────
+function setConn(ok) {
+  document.getElementById('conn').className = 'conn' + (ok ? ' on' : '');
+  document.getElementById('conn-txt').textContent = ok ? 'CONNECTED' : 'WAITING';
+  if (latest) document.getElementById('upd-time').textContent =
+    new Date(latest.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+function renderOverview(d) {
+  const r = d.latest;
+  $('h-score',  d.score ?? '—');
+  $('h-badge',  d.label ?? '—');
+  $('h-co2',   r.co2);
+  $('h-pm25',  r.pm25.toFixed(1));
+  $('v-temp',  r.temp.toFixed(1));
+  $('v-hum',   r.hum.toFixed(1));
+  $('g-co2',   r.co2);
+  $('g-pm25',  r.pm25.toFixed(1));
+
+  const lbl = d.label;
+  document.getElementById('h-badge').style.background =
+    lbl==='Good' ? 'rgba(90,158,74,.3)' : lbl==='Alarm' ? 'rgba(217,64,64,.3)' : 'rgba(0,0,0,.2)';
+
+  gauge('gd-co2',  r.co2,  400, 1200);
+  gauge('gd-pm25', r.pm25, 0,   90);
+
+  const last = hist.slice(-20);
+  spark(C.spCo2,  last.map(x => x.co2));
+  spark(C.spPm25, last.map(x => x.pm25));
+  spark(C.spTemp, last.map(x => x.temp));
+  spark(C.spHum,  last.map(x => x.hum));
+}
+
+function gauge(id, v, mn, mx) {
+  const pct = Math.min(100, Math.max(0, (v - mn) / (mx - mn) * 100));
+  document.getElementById(id).style.left = pct + '%';
+}
+
+// ── Sparklines ────────────────────────────────────────────────────────────────
+function mkSpark(id, color) {
+  return new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 1.5, pointRadius: 0, tension: .4, fill: false }] },
+    options: { responsive:false, animation:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false}} }
+  });
+}
+function initSparklines() {
+  C.spCo2  = mkSpark('sp-co2',  'rgba(255,255,255,.75)');
+  C.spPm25 = mkSpark('sp-pm25', 'rgba(255,255,255,.75)');
+  C.spTemp = mkSpark('sp-temp', '#c8853a');
+  C.spHum  = mkSpark('sp-hum',  '#4a7abf');
+}
+function spark(ch, data) {
+  ch.data.labels = data.map((_,i) => i);
+  ch.data.datasets[0].data = data;
+  ch.update('none');
+}
+
+// ── History charts ────────────────────────────────────────────────────────────
+function mkHistChart(id, color, bg) {
+  return new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels: [], datasets: [{ data: [], borderColor: color, backgroundColor: bg, borderWidth: 1.5, pointRadius: 0, tension: .3, fill: true }] },
+    options: {
+      responsive: true, animation: false,
+      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { title: i => i[0].label } } },
+      scales: {
+        x: { ticks: { color:'#aaa', maxTicksLimit:8, font:{size:9} }, grid: { color:'#f0ebe0' } },
+        y: { ticks: { color:'#aaa', font:{size:9} },                  grid: { color:'#f0ebe0' } }
+      }
+    }
+  });
+}
+function initHistCharts() {
+  C.hCo2  = mkHistChart('hc-co2',  '#5a7e5a', 'rgba(90,126,90,.08)');
+  C.hPm25 = mkHistChart('hc-pm25', '#7a6ea8', 'rgba(122,110,168,.08)');
+  C.hTemp = mkHistChart('hc-temp', '#c8853a', 'rgba(200,133,58,.08)');
+  C.hHum  = mkHistChart('hc-hum',  '#4a7abf', 'rgba(74,122,191,.08)');
+}
+
+function filteredHist() {
+  const now = Date.now();
+  const cut = { '30s': now-30000, '1m': now-60000, '2m': now-120000, 'all': 0 }[filter] ?? 0;
+  return hist.filter(r => r.ts >= cut);
+}
+
+function renderHistCharts() {
+  const data = filteredHist();
+  if (!data.length) return;
+  const labels = data.map(r => fmtT(r.ts));
+  setHC(C.hCo2,  labels, data.map(r=>r.co2),  'hs-co2',  0);
+  setHC(C.hPm25, labels, data.map(r=>r.pm25), 'hs-pm25', 1);
+  setHC(C.hTemp, labels, data.map(r=>r.temp), 'hs-temp', 1);
+  setHC(C.hHum,  labels, data.map(r=>r.hum),  'hs-hum',  1);
+  document.getElementById('hist-sub').textContent = `Last ${data.length} readings · 5s cadence`;
+}
+
+function setHC(ch, labels, vals, pre, dec) {
+  ch.data.labels = labels;
+  ch.data.datasets[0].data = vals;
+  ch.update('none');
+  const v = vals.filter(x => x > 0);
+  if (!v.length) return;
+  const last = vals[vals.length-1], mn = Math.min(...v), mx = Math.max(...v), avg = v.reduce((a,b)=>a+b,0)/v.length;
+  $(pre+'-now', f(last,dec)); $(pre+'-min', f(mn,dec)); $(pre+'-max', f(mx,dec)); $(pre+'-avg', f(avg,dec));
+}
+
+function setFilter(btn, f) {
+  filter = f;
+  document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistCharts();
+}
+
+// ── Time of Day ───────────────────────────────────────────────────────────────
+function initTodChart() {
+  C.tod = new Chart(document.getElementById('tod-chart'), {
+    type: 'bar',
+    data: {
+      labels: Array.from({length:24},(_,i) => i%6===0?`${i}:00`:''),
+      datasets:[{data:Array(24).fill(null), backgroundColor:'rgba(90,126,90,.5)', borderRadius:3, borderWidth:0}]
+    },
+    options: {
+      responsive:true, animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].dataIndex}:00`,label:i=>i.raw?`avg CO₂: ${Math.round(i.raw)} ppm`:'no data'}}},
+      scales:{x:{ticks:{color:'#aaa',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#aaa',font:{size:9}},grid:{color:'#f0ebe0'}}}
+    }
+  });
+}
+
+function renderTod() {
+  const buckets = Array.from({length:24},()=>[]);
+  hist.forEach(r => { if(r.co2>0) buckets[new Date(r.ts).getHours()].push(r.co2); });
+  const avgs = buckets.map(b => b.length ? b.reduce((a,c)=>a+c,0)/b.length : null);
+  C.tod.data.datasets[0].data = avgs;
+  C.tod.update('none');
+  const peak = avgs.reduce((best,v,i)=>v&&v>(avgs[best]??-1)?i:best,0);
+  if (avgs[peak]) document.getElementById('tod-sub').textContent = `Peak: ${peak}:00 · ${Math.round(avgs[peak])} ppm`;
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+function buildCal() {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+  const grid = document.getElementById('cal-grid');
+  ['S','M','T','W','T','F','S'].forEach(h => { const d=document.createElement('div'); d.className='cal-hdr'; d.textContent=h; grid.appendChild(d); });
+  const first = new Date(y,m,1).getDay(), days = new Date(y,m+1,0).getDate();
+  for(let i=0;i<first;i++){ const d=document.createElement('div'); d.className='cal-day empty'; grid.appendChild(d); }
+  for(let d=1;d<=days;d++){
+    const el=document.createElement('div'); el.className='cal-day'; el.textContent=d;
+    const key=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    el.dataset.date=key; el.onclick=()=>selectDay(key,el);
+    grid.appendChild(el);
+  }
+}
+
+function renderCal() {
+  document.querySelectorAll('.cal-day[data-date]').forEach(el => {
+    const d = daily[el.dataset.date];
+    el.className = 'cal-day' + (el.dataset.date===selDay?' sel':'');
+    if(d) el.classList.add(d.label==='Good'?'good':d.label==='Alarm'?'alarm':'mod');
+  });
+}
+
+function selectDay(key, el) {
+  if(selDay===key){closePopup();return;}
+  selDay=key;
+  document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('sel'));
+  el.classList.add('sel');
+  const d=daily[key];
+  if(!d){closePopup();return;}
+  document.getElementById('dp-title').textContent = key;
+  document.getElementById('dp-stats').innerHTML =
+    `<span>CO₂ avg</span><span>${d.avg_co2} ppm</span><span>PM2.5</span><span>${d.avg_pm25} μg/m³</span><span>Temp</span><span>${d.avg_temp} °C</span><span>Readings</span><span>${d.count}</span>`;
+  document.getElementById('day-popup').classList.add('show');
+}
+function closePopup(){ selDay=null; document.getElementById('day-popup').classList.remove('show'); document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('sel')); }
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+function renderCtrlState(s, log) {
+  if(!s) return;
+  state = s;
+  document.getElementById('co2-sld').value  = s.co2_threshold;
+  document.getElementById('pm25-sld').value = s.pm25_threshold;
+  document.getElementById('co2-act').textContent  = s.co2_threshold + ' ppm';
+  document.getElementById('pm25-act').textContent = s.pm25_threshold + ' μg/m³';
+  moveBub('co2'); moveBub('pm25');
+
+  if(latest && latest.co2>0){
+    setBadge('co2-rbadge',  latest.co2,        s.co2_threshold,  ' ppm');
+    setBadge('pm25-rbadge', latest.pm25.toFixed(1), s.pm25_threshold, ' μg/m³');
+  }
+
+  const buzOn = !!s.buzzer;
+  const btn=document.getElementById('buz-btn');
+  btn.className='btn-full'+(buzOn?' on':'');
+  btn.textContent = buzOn ? '⏹ Stop tone' : '▶ Force constant tone';
+  document.getElementById('buz-status').textContent = buzOn ? 'Mode: Forced ON' : 'Mode: Auto (state machine)';
+
+  if(log && log.length){
+    document.getElementById('cmd-log').innerHTML = log.map(e=>
+      `<div class="log-entry"><span class="log-ts">${e.ts}</span><span>${e.msg}</span></div>`).join('');
+  }
+}
+
+function setBadge(id, val, thr, unit) {
+  const alarm = parseFloat(val) >= thr;
+  const el = document.getElementById(id);
+  el.textContent = val + unit + ' · ' + (alarm ? 'ALARM' : 'OK');
+  el.className = 'rbadge ' + (alarm ? 'alarm' : 'ok');
+}
+
+function moveBub(which) {
+  const sld = document.getElementById(which+'-sld');
+  const bub = document.getElementById(which+'-bub');
+  const mn = +sld.min, mx = +sld.max, val = +sld.value;
+  const pct = (val-mn)/(mx-mn);
+  const tw = sld.offsetWidth || 200;
+  bub.style.left = (pct*(tw-15)+7.5) + 'px';
+  bub.textContent = val + (which==='co2' ? ' ppm' : ' μg/m³');
+}
+
+function applyThr(which) {
+  const val = +document.getElementById(which+'-sld').value;
+  sendCtrl({ [which==='co2'?'co2_threshold':'pm25_threshold']: val });
+}
+
+function setLed(mode, btn) {
+  document.querySelectorAll('.seg').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(mode==='auto'){ document.getElementById('led-status').textContent='Status: OFF (auto)'; return; }
+  sendCtrl({led: mode==='on'?1:0});
+  document.getElementById('led-status').textContent = `Status: ${mode.toUpperCase()} (one-shot sent)`;
+  setTimeout(()=>{ document.getElementById('led-auto').classList.add('active'); btn.classList.remove('active'); document.getElementById('led-status').textContent='Status: OFF (auto)'; }, 3000);
+}
+
+function toggleBuzzer() {
+  sendCtrl({ buzzer: state.buzzer ? 0 : 1 });
+}
+
+async function sendCtrl(payload) {
+  try {
+    const r = await fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    renderCtrlState(d.state, null);
+    fetch('/api/status').then(r=>r.json()).then(d=>{ if(d.log) renderCtrlState(d.state,d.log); });
+  } catch {}
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function $(id,v){ document.getElementById(id).textContent=v; }
+function f(v,dec){ return v==null?'—':dec?Number(v).toFixed(dec):Math.round(v); }
+function fmtT(ts){ return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+</script>
+</body>
+</html>
