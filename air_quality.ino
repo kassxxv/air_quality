@@ -12,8 +12,8 @@
 #define WIFI_PASS     "YOUR_PASSWORD"
 
 // ─── Azure endpoints (fill in when partner is ready) ─────
-#define AZURE_POST    "https://your-azure-app.azurewebsites.net/api/data"
-#define AZURE_GET     "https://your-azure-app.azurewebsites.net/api/commands"
+#define AZURE_POST    "air-quality-rg.azurewebsites.net/api/data"
+#define AZURE_GET     "air-quality-rg.azurewebsites.net/api/commands"
 
 // ─── Pins ────────────────────────────────────────────────
 #define PMS_RX      16
