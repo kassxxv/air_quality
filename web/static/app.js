@@ -588,19 +588,20 @@ function MonthHeatmap({monthData}) {
   const now = new Date();
 
   return (
-    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px 20px',boxShadow:C.shadow,position:'relative'}}>
+    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px',boxShadow:C.shadow,position:'relative'}}>
       <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:13,color:C.text,fontWeight:500,marginBottom:4}}>Monthly Air Quality</div>
       <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:14,letterSpacing:'0.08em'}}>Daily score · click a day to expand</div>
+      {/* Day-of-week headers — flex:1 so they scale with container width */}
       <div style={{display:'flex',gap:3,marginBottom:4}}>
         {DAY_LABELS.map((l,i)=>(
-          <div key={i} style={{width:22,textAlign:'center',fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>{l}</div>
+          <div key={i} style={{flex:1,textAlign:'center',fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>{l}</div>
         ))}
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:3}}>
         {weeks.map((wk,wi)=>(
           <div key={wi} style={{display:'flex',gap:3}}>
             {wk.map((d,di)=>{
-              if (!d) return <div key={di} style={{width:22,height:22}}/>;
+              if (!d) return <div key={di} style={{flex:1,aspectRatio:'1'}}/>;
               const isToday    = d.date.toDateString()===now.toDateString();
               const isSelected = selected && selected.date.toDateString()===d.date.toDateString();
               const color = d.future ? 'rgba(80,60,30,0.04)' : scoreToColor(d.score);
@@ -610,7 +611,7 @@ function MonthHeatmap({monthData}) {
                   onMouseLeave={()=>setTooltip(null)}
                   onClick={()=>{ if(d.future) return; setSelected(isSelected?null:d); setTooltip(null); }}
                   style={{
-                    width:22,height:22,borderRadius:5,background:color,
+                    flex:1, aspectRatio:'1', borderRadius:5, background:color,
                     border:isSelected?`2px solid ${C.text}`:isToday?`2px solid ${C.textMid}`:'2px solid transparent',
                     cursor:d.future?'default':'pointer',
                     transform:isSelected?'scale(1.15)':'scale(1)',
