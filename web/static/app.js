@@ -24,6 +24,7 @@ const HERO = {
   good:    { from:'#2d6a2d', to:'#4a9e4a', b1:'#3d8b3d', b2:'#52c052', b3:'#70d070', label:'Clean Air',  pill:'Good' },
   warning: { from:'#7a5000', to:'#c9941a', b1:'#b8860b', b2:'#d4a017', b3:'#e8c040', label:'Moderate',   pill:'Moderate' },
   danger:  { from:'#6a1010', to:'#c02828', b1:'#8b1a1a', b2:'#b52020', b3:'#d84040', label:'Poor Air',   pill:'Poor' },
+  offline: { from:'#3a3530', to:'#5a5248', b1:'#4a4540', b2:'#6a6258', b3:'#7a7268', label:'No Data',    pill:'Offline' },
 };
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
@@ -304,15 +305,16 @@ function NavBar({tab, setTab, level}) {
 // OVERVIEW  — fix: removed maxWidth constraint so it uses full width
 // ═══════════════════════════════════════════════════════════════════════════
 function Overview({data, score, scoreLabel}) {
-  const level=getLevel(data.co2, data.pm25);
-  const hc=HERO[level];
-  const airScore = score ?? (level==='good'
+  const isOffline = data.co2 === 0;
+  const level = isOffline ? 'offline' : getLevel(data.co2, data.pm25);
+  const hc = HERO[level];
+  const airScore = isOffline ? null : (score ?? (level==='good'
     ? Math.min(99,Math.max(40,Math.round(100-(data.co2-400)/8-data.pm25)))
-    : level==='warning' ? 55 : 20);
-  const statusLabel = scoreLabel ?? hc.pill;
+    : level==='warning' ? 55 : 20));
+  const statusLabel = isOffline ? 'Offline' : (scoreLabel ?? hc.pill);
 
   const co2Pct  = Math.min(98,((data.co2 -400)/800)*100);
-  const scoreColor = {good:'#4a9e4a',warning:'#c9941a',danger:'#c02828'}[level];
+  const scoreColor = {good:'#4a9e4a',warning:'#c9941a',danger:'#c02828'}[level] ?? '#6a6258';
 
   return (
     <div className="panel-scroll slide-in" style={{flex:1,padding:'28px 40px',display:'flex',flexDirection:'column',gap:22,maxWidth:1050,margin:'0 auto',width:'100%'}}>
@@ -332,22 +334,29 @@ function Overview({data, score, scoreLabel}) {
         </svg>
         <div style={{position:'relative',display:'flex',gap:40,alignItems:'stretch'}}>
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:160,paddingRight:40,borderRight:'1px solid rgba(255,255,255,0.2)'}}>
-            <LeafIcon size={44}/>
-            <div style={{fontSize:76,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif",letterSpacing:'-0.03em',marginTop:10}}>{airScore}</div>
+            {isOffline ? (
+              <svg width="44" height="44" viewBox="0 0 48 48" style={{display:'block',opacity:0.55}}>
+                <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"/>
+                <path d="M24 14v10l6 4" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            ) : <LeafIcon size={44}/>}
+            <div style={{fontSize:76,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif",letterSpacing:'-0.03em',marginTop:10,opacity:isOffline?0.4:1}}>
+              {airScore ?? '—'}
+            </div>
             <div style={{fontSize:10,color:'rgba(255,255,255,0.65)',textTransform:'uppercase',letterSpacing:'0.16em',marginTop:6,fontFamily:"'DM Mono',monospace"}}>Air Score</div>
-            <div style={{marginTop:14,fontSize:13,color:'#fff',fontFamily:"'DM Mono',monospace",letterSpacing:'0.06em',background:'rgba(255,255,255,0.18)',borderRadius:99,padding:'5px 18px',backdropFilter:'blur(4px)'}}>{statusLabel}</div>
+            <div style={{marginTop:14,fontSize:13,color:'#fff',fontFamily:"'DM Mono',monospace",letterSpacing:'0.06em',background:'rgba(255,255,255,0.18)',borderRadius:99,padding:'5px 18px',backdropFilter:'blur(4px)',opacity:isOffline?0.7:1}}>{statusLabel}</div>
           </div>
           <div style={{flex:1,display:'flex',flexDirection:'column',gap:16}}>
             {[
               {label:'Carbon Dioxide', val:data.co2,  unit:'ppm',   hist:data.co2H,  spark:data.co2>=1000?'#ffb0b0':data.co2>=800?'#ffe0a0':'#b0ffb0'},
               {label:'Fine Particles', val:data.pm25, unit:'µg/m³', hist:data.pm25H, spark:data.pm25>=55?'#ffb0b0':data.pm25>=35?'#ffe0a0':'#b0ffb0'},
             ].map(m=>(
-              <div key={m.label} style={{background:'rgba(255,255,255,0.13)',borderRadius:18,padding:'18px 24px',backdropFilter:'blur(8px)',flex:1}}>
+              <div key={m.label} style={{background:'rgba(255,255,255,0.10)',borderRadius:18,padding:'18px 24px',backdropFilter:'blur(8px)',flex:1,opacity:isOffline?0.5:1}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
                   <div>
                     <div style={{fontSize:10,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:'0.14em',fontFamily:"'DM Mono',monospace",marginBottom:6}}>{m.label}</div>
                     <div style={{fontSize:44,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif"}}>
-                      {m.val || '—'}<span style={{fontSize:15,color:'rgba(255,255,255,0.6)',marginLeft:8}}>{m.unit}</span>
+                      {isOffline ? '—' : (m.val || '—')}<span style={{fontSize:15,color:'rgba(255,255,255,0.6)',marginLeft:8}}>{m.unit}</span>
                     </div>
                   </div>
                   <Spark data={m.hist} color={m.spark} w={140} h={44} fill/>
