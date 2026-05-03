@@ -217,10 +217,16 @@ function AlarmBanner({data, co2T, pm25T, dismissed, onDismiss}) {
   const pm25Alarm = data.pm25 >= pm25T && data.pm25 > 0;
   const active    = co2Alarm || pm25Alarm;
   const [exiting, setExiting] = useState(false);
+  const everActive = useRef(false);
 
   useEffect(() => {
-    if (!active && !dismissed) setExiting(true);
-    if (active) setExiting(false);
+    if (active) {
+      everActive.current = true;
+      setExiting(false);
+    } else if (everActive.current && !dismissed) {
+      setExiting(true);
+    }
+    // if never active: don't touch exiting — banner stays null on page load
   }, [active]);
 
   const handleDismiss = () => { setExiting(true); setTimeout(onDismiss, 260); };
