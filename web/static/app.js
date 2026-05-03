@@ -1148,7 +1148,10 @@ function App() {
       <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
         {tab==='overview' && <Overview data={data} score={score} scoreLabel={scoreLabel}/>}
         {tab==='history'  && <div style={{flex:1,overflow:'hidden',display:'flex'}}><History data={data} monthData={monthData} hourlyData={hourlyData} hasRealHourly={hasRealHourly}/></div>}
-        {tab==='controls' && <Controls data={data} co2T={co2T} pm25T={pm25T} setCo2T={setCo2T} setPm25T={setPm25T} deviceState={deviceState}/>}
+        {/* Controls stays mounted so command log state survives tab switches */}
+        <div style={{display:tab==='controls'?'flex':'none',flex:1,overflow:'hidden',flexDirection:'column'}}>
+          <Controls data={data} co2T={co2T} pm25T={pm25T} setCo2T={setCo2T} setPm25T={setPm25T} deviceState={deviceState}/>
+        </div>
       </div>
     </div>
   );
