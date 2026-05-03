@@ -776,10 +776,10 @@ function History({data, monthData, hourlyData, hasRealHourly}) {
       </div>
 
       {/* Center: Live charts */}
-      <div style={{flex:1,display:'flex',flexDirection:'column',gap:14,minWidth:0}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',gap: mobile ? 10 : 14,minWidth:0}}>
+        <div style={{display:'flex',flexDirection: mobile ? 'column' : 'row',justifyContent:'space-between',alignItems: mobile ? 'flex-start' : 'center',gap: mobile ? 8 : 0,flexShrink:0}}>
           <div>
-            <div style={{fontFamily:"'Instrument Serif',serif",fontSize:20,color:C.text,fontWeight:300}}>Sensor History</div>
+            <div style={{fontFamily:"'Instrument Serif',serif",fontSize: mobile ? 18 : 20,color:C.text,fontWeight:300}}>Sensor History</div>
             <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em',marginTop:2}}>Last {rangeSec} · 5s cadence</div>
           </div>
           <div style={{display:'flex',gap:4,background:C.surfaceAlt,border:`1px solid ${C.border}`,borderRadius:12,padding:3}}>
@@ -787,7 +787,7 @@ function History({data, monthData, hourlyData, hasRealHourly}) {
               const active=range===opt.points;
               return (
                 <button key={opt.label} onClick={()=>setRange(opt.points)} style={{
-                  padding:'4px 12px',border:'none',cursor:'pointer',borderRadius:8,
+                  padding:'4px 12px',border:'none',cursor:'pointer',borderRadius:8,outline:'none',
                   background:active?C.surface:'transparent',color:active?C.text:C.muted,
                   fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.08em',
                   boxShadow:active?C.shadow:'none',transition:'all 0.15s',fontWeight:active?500:400,
@@ -819,15 +819,15 @@ function History({data, monthData, hourlyData, hasRealHourly}) {
           const hMin=valid.length?Math.min(...valid):'—', hMax=valid.length?Math.max(...valid):'—';
           const avg=valid.length?(valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1):'—';
           return (
-            <div key={ch.label} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:18,padding:'14px 18px',boxShadow:C.shadow,display:'flex',flexDirection:'column',gap:6,height:152}}>
+            <div key={ch.label} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:18,padding:'12px 14px',boxShadow:C.shadow,display:'flex',flexDirection:'column',gap:6,height: mobile ? 120 : 152}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
-                <div style={{display:'flex',alignItems:'center',gap:7}}>
-                  <div style={{width:7,height:7,borderRadius:'50%',background:ch.color}}/>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.12em',textTransform:'uppercase'}}>{ch.label}</span>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>{ch.unit}</span>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <div style={{width:7,height:7,borderRadius:'50%',background:ch.color,flexShrink:0}}/>
+                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.10em',textTransform:'uppercase'}}>{ch.label}</span>
+                  {!mobile && <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>{ch.unit}</span>}
                 </div>
-                <div style={{display:'flex',gap:16}}>
-                  {[{l:'NOW',v:`${dv||'—'} ${ch.unit}`},{l:'MIN',v:hMin},{l:'MAX',v:hMax},{l:'AVG',v:avg}].map(s=>(
+                <div style={{display:'flex',gap: mobile ? 10 : 16}}>
+                  {(mobile ? [{l:'NOW',v:`${dv||'—'}`},{l:'AVG',v:avg}] : [{l:'NOW',v:`${dv||'—'} ${ch.unit}`},{l:'MIN',v:hMin},{l:'MAX',v:hMax},{l:'AVG',v:avg}]).map(s=>(
                     <div key={s.l} style={{textAlign:'right'}}>
                       <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,letterSpacing:'0.1em'}}>{s.l}</div>
                       <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:s.l==='NOW'?ch.color:C.textMid}}>{s.v}</div>
