@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from collections import deque
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ from pydantic import BaseModel
 app = FastAPI(title="Air Quality Monitor")
 
 STATIC_DIR = Path(__file__).parent / "static"
+LOG_FILE   = Path(__file__).parent / "command_log.json"
 
 # ─── In-memory state ──────────────────────────────────────────────────────────
 
@@ -31,6 +33,13 @@ device_state = {
 pending_led: Optional[int] = None          # one-shot, cleared after delivery
 
 command_log: deque[dict] = deque(maxlen=50)
+
+# Load persisted log so entries survive server restarts
+if LOG_FILE.exists():
+    try:
+        command_log.extend(json.loads(LOG_FILE.read_text()))
+    except Exception:
+        pass
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +64,10 @@ def now_ms() -> int:
 def log_command(msg: str):
     ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
     command_log.appendleft({"ts": ts, "msg": msg})
+    try:
+        LOG_FILE.write_text(json.dumps(list(command_log)))
+    except Exception:
+        pass
 
 # ─── Request / response models ────────────────────────────────────────────────
 

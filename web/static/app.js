@@ -1,5 +1,36 @@
 const { useState, useEffect, useRef, useCallback } = React;
 
+// ─── Responsive hook ─────────────────────────────────────────────────────────
+function useIsMobile(bp = 768) {
+  const [mobile, setMobile] = useState(window.innerWidth < bp);
+  useEffect(() => {
+    const h = () => setMobile(window.innerWidth < bp);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, [bp]);
+  return mobile;
+}
+
+// ─── Hash-based tab routing ───────────────────────────────────────────────────
+const VALID_TABS = ['overview','history','controls'];
+function getHashTab() {
+  const h = window.location.hash.replace('#','');
+  return VALID_TABS.includes(h) ? h : 'overview';
+}
+function useHashTab() {
+  const [tab, setTab] = useState(getHashTab);
+  const navigate = useCallback((t) => {
+    window.location.hash = t;
+    setTab(t);
+  }, []);
+  useEffect(() => {
+    const onHash = () => setTab(getHashTab());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  return [tab, navigate];
+}
+
 // ─── Palette ────────────────────────────────────────────────────────────────
 const C = {
   bg:        '#f7f3ed',
@@ -258,45 +289,56 @@ function LiveClock() {
 function NavBar({tab, setTab, level}) {
   const dot = { good:'#4a9e4a', warning:'#c9941a', danger:'#c02828' }[level] || '#ccc';
   const connStatus = useConnectionStatus();
+  const mobile = useIsMobile();
   return (
     <header style={{
-      height:56, flexShrink:0, background:C.surface,
+      flexShrink:0, background:C.surface,
       borderBottom:`1px solid ${C.border}`,
-      display:'flex', alignItems:'center', padding:'0 28px', gap:0,
+      display:'flex', flexDirection: mobile ? 'column' : 'row',
+      alignItems: mobile ? 'stretch' : 'center',
+      padding: mobile ? '10px 16px 0' : '0 28px',
       boxShadow:C.shadow, position:'relative', zIndex:100,
     }}>
-      <div style={{display:'flex',alignItems:'center',gap:10,marginRight:36}}>
-        <div style={{position:'relative',width:20,height:20}}>
-          <div style={{position:'absolute',inset:0,borderRadius:'50%',background:dot,opacity:0.25,animation:'pulse-ring 2.4s ease-in-out infinite'}}/>
-          <div style={{position:'absolute',inset:4,borderRadius:'50%',background:dot}}/>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{position:'relative',width:20,height:20}}>
+            <div style={{position:'absolute',inset:0,borderRadius:'50%',background:dot,opacity:0.25,animation:'pulse-ring 2.4s ease-in-out infinite'}}/>
+            <div style={{position:'absolute',inset:4,borderRadius:'50%',background:dot}}/>
+          </div>
+          <span style={{fontFamily:"'Instrument Serif',serif",fontSize:18,color:C.text,fontWeight:400,letterSpacing:'-0.01em'}}>Air Quality</span>
+          <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.12em',marginTop:2}}>ESP32</span>
         </div>
-        <span style={{fontFamily:"'Instrument Serif',serif",fontSize:18,color:C.text,fontWeight:400,letterSpacing:'-0.01em'}}>Air Quality</span>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.12em',marginTop:2}}>ESP32</span>
+        <ConnectionBadge status={connStatus}/>
       </div>
 
-      <nav style={{display:'flex',gap:2,flex:1,position:'relative',zIndex:1}}>
+      <nav style={{display:'flex',gap:2,flex:1,position:'relative',zIndex:1,marginLeft:mobile?0:24,marginTop:mobile?6:0}}>
         {NAV_ITEMS.map(n=>{
           const active=tab===n.id;
           return (
             <button key={n.id} onClick={()=>setTab(n.id)} style={{
-              padding:'6px 16px',border:'none',background:'transparent',cursor:'pointer',
+              flex: mobile ? 1 : 'none',
+              padding: mobile ? '8px 0' : '6px 16px',
+              border:'none',background:'transparent',cursor:'pointer',outline:'none',
               fontFamily:"'Space Grotesk',sans-serif",fontSize:13,fontWeight:active?500:400,
               color:active?C.text:C.muted, borderRadius:8,position:'relative',transition:'color 0.15s',zIndex:2,
+              textAlign:'center',
             }}>
               {n.label}
-              {active && <div style={{position:'absolute',bottom:-1,left:12,right:12,height:2,background:C.text,borderRadius:'2px 2px 0 0'}}/>}
+              {active && <div style={{position:'absolute',bottom:-1,left: mobile?8:12,right: mobile?8:12,height:2,background:C.text,borderRadius:'2px 2px 0 0'}}/>}
             </button>
           );
         })}
       </nav>
 
-      <div style={{display:'flex',alignItems:'center',gap:16,flexShrink:0}}>
-        <ConnectionBadge status={connStatus}/>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,letterSpacing:'0.08em',textAlign:'right'}}>
-          <div style={{fontSize:8,letterSpacing:'0.14em',marginBottom:1}}>LAST UPDATE</div>
-          <LiveClock/>
+      {!mobile && (
+        <div style={{display:'flex',alignItems:'center',gap:16,flexShrink:0}}>
+          <ConnectionBadge status={connStatus}/>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,letterSpacing:'0.08em',textAlign:'right'}}>
+            <div style={{fontSize:8,letterSpacing:'0.14em',marginBottom:1}}>LAST UPDATE</div>
+            <LiveClock/>
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }
@@ -315,14 +357,17 @@ function Overview({data, score, scoreLabel}) {
 
   const co2Pct  = Math.min(98,((data.co2 -400)/800)*100);
   const scoreColor = {good:'#4a9e4a',warning:'#c9941a',danger:'#c02828'}[level] ?? '#6a6258';
+  const mobile = useIsMobile();
 
   return (
-    <div className="panel-scroll slide-in" style={{flex:1,padding:'28px 40px',display:'flex',flexDirection:'column',gap:22,maxWidth:1050,margin:'0 auto',width:'100%'}}>
+    <div className="panel-scroll slide-in" style={{flex:1,padding: mobile ? '16px' : '28px 40px',display:'flex',flexDirection:'column',gap: mobile ? 14 : 22,maxWidth:1050,margin:'0 auto',width:'100%'}}>
 
       {/* Hero card */}
       <div style={{
-        borderRadius:28, background:`linear-gradient(135deg,${hc.from},${hc.to})`,
-        position:'relative', overflow:'hidden', padding:'36px 40px',
+        borderRadius: mobile ? 20 : 28,
+        background:`linear-gradient(135deg,${hc.from},${hc.to})`,
+        position:'relative', overflow:'hidden',
+        padding: mobile ? '24px 20px' : '36px 40px',
         boxShadow:`0 8px 40px ${hc.b1}40`,
         transition:'background 1.2s ease, box-shadow 1.2s ease', flexShrink:0,
       }}>
@@ -332,21 +377,23 @@ function Overview({data, score, scoreLabel}) {
           <circle cx="560"  cy="270" r="190" fill={hc.b1}/>
           <circle cx="280"  cy="-20" r="110"  fill={hc.b3}/>
         </svg>
-        <div style={{position:'relative',display:'flex',gap:40,alignItems:'stretch'}}>
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:160,paddingRight:40,borderRight:'1px solid rgba(255,255,255,0.2)'}}>
+        <div style={{position:'relative',display:'flex',flexDirection: mobile ? 'column' : 'row',gap: mobile ? 16 : 40,alignItems: mobile ? 'center' : 'stretch'}}>
+          <div style={{display:'flex',flexDirection: mobile ? 'row' : 'column',alignItems:'center',justifyContent:'center',gap: mobile ? 16 : 0,paddingBottom: mobile ? 16 : 0,paddingRight: mobile ? 0 : 40,borderBottom: mobile ? '1px solid rgba(255,255,255,0.2)' : 'none',borderRight: mobile ? 'none' : '1px solid rgba(255,255,255,0.2)',width: mobile ? '100%' : undefined,minWidth: mobile ? undefined : 160}}>
             {isOffline ? (
               <svg width="44" height="44" viewBox="0 0 48 48" style={{display:'block',opacity:0.55}}>
                 <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"/>
                 <path d="M24 14v10l6 4" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-            ) : <LeafIcon size={44}/>}
-            <div style={{fontSize:76,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif",letterSpacing:'-0.03em',marginTop:10,opacity:isOffline?0.4:1}}>
-              {airScore ?? '—'}
+            ) : <LeafIcon size={mobile ? 36 : 44}/>}
+            <div style={{display:'flex',flexDirection:'column',alignItems: mobile ? 'flex-start' : 'center'}}>
+              <div style={{fontSize: mobile ? 56 : 76,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif",letterSpacing:'-0.03em',marginTop: mobile ? 0 : 10,opacity:isOffline?0.4:1}}>
+                {airScore ?? '—'}
+              </div>
+              <div style={{fontSize:10,color:'rgba(255,255,255,0.65)',textTransform:'uppercase',letterSpacing:'0.16em',marginTop:4,fontFamily:"'DM Mono',monospace"}}>Air Score</div>
+              <div style={{marginTop:10,fontSize:12,color:'#fff',fontFamily:"'DM Mono',monospace",letterSpacing:'0.06em',background:'rgba(255,255,255,0.18)',borderRadius:99,padding:'4px 14px',backdropFilter:'blur(4px)',opacity:isOffline?0.7:1,alignSelf: mobile ? 'flex-start' : 'center'}}>{statusLabel}</div>
             </div>
-            <div style={{fontSize:10,color:'rgba(255,255,255,0.65)',textTransform:'uppercase',letterSpacing:'0.16em',marginTop:6,fontFamily:"'DM Mono',monospace"}}>Air Score</div>
-            <div style={{marginTop:14,fontSize:13,color:'#fff',fontFamily:"'DM Mono',monospace",letterSpacing:'0.06em',background:'rgba(255,255,255,0.18)',borderRadius:99,padding:'5px 18px',backdropFilter:'blur(4px)',opacity:isOffline?0.7:1}}>{statusLabel}</div>
           </div>
-          <div style={{flex:1,display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{flex:1,display:'flex',flexDirection:'column',gap: mobile ? 10 : 16,width: mobile ? '100%' : undefined}}>
             {[
               {label:'Carbon Dioxide', val:data.co2,  unit:'ppm',   hist:data.co2H,  spark:data.co2>=1000?'#ffb0b0':data.co2>=800?'#ffe0a0':'#b0ffb0'},
               {label:'Fine Particles', val:data.pm25, unit:'µg/m³', hist:data.pm25H, spark:data.pm25>=55?'#ffb0b0':data.pm25>=35?'#ffe0a0':'#b0ffb0'},
@@ -368,25 +415,25 @@ function Overview({data, score, scoreLabel}) {
       </div>
 
       {/* Temp + Humidity */}
-      <div style={{display:'flex',gap:18,flexShrink:0}}>
+      <div style={{display:'flex',flexDirection: mobile ? 'row' : 'row',gap: mobile ? 10 : 18,flexShrink:0}}>
         {[
           {label:'Temperature', val:data.temp.toFixed(1), unit:'°C',  hist:data.tempH, color:'#b07030'},
           {label:'Humidity',    val:data.hum.toFixed(1),  unit:'%RH', hist:data.humH,  color:'#4a7a9a'},
         ].map(m=>(
-          <div key={m.label} style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'24px 28px',boxShadow:C.shadow}}>
-            <div style={{fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace",marginBottom:12}}>{m.label}</div>
+          <div key={m.label} style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius: mobile ? 16 : 22,padding: mobile ? '16px 18px' : '24px 28px',boxShadow:C.shadow}}>
+            <div style={{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace",marginBottom:8}}>{m.label}</div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-              <div style={{fontFamily:"'Instrument Serif',serif",fontSize:48,color:C.text,fontWeight:300,lineHeight:1}}>
-                {m.val}<span style={{fontSize:16,color:C.muted,marginLeft:6}}>{m.unit}</span>
+              <div style={{fontFamily:"'Instrument Serif',serif",fontSize: mobile ? 36 : 48,color:C.text,fontWeight:300,lineHeight:1}}>
+                {m.val}<span style={{fontSize: mobile ? 12 : 16,color:C.muted,marginLeft:4}}>{m.unit}</span>
               </div>
-              <Spark data={m.hist} color={m.color} w={120} h={42}/>
+              {!mobile && <Spark data={m.hist} color={m.color} w={120} h={42}/>}
             </div>
           </div>
         ))}
       </div>
 
       {/* CO₂ range bar */}
-      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'24px 28px',boxShadow:C.shadow,flexShrink:0}}>
+      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius: mobile ? 16 : 22,padding: mobile ? '16px 18px' : '24px 28px',boxShadow:C.shadow,flexShrink:0}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:16}}>
           <div style={{fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace"}}>CO₂ Level</div>
           <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:C.text}}>{data.co2} <span style={{fontSize:10,color:C.muted}}>ppm</span></div>
@@ -404,7 +451,7 @@ function Overview({data, score, scoreLabel}) {
       </div>
 
       {/* PM2.5 range bar */}
-      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'24px 28px',boxShadow:C.shadow,flexShrink:0}}>
+      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius: mobile ? 16 : 22,padding: mobile ? '16px 18px' : '24px 28px',boxShadow:C.shadow,flexShrink:0}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:16}}>
           <div style={{fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace"}}>PM2.5 Level</div>
           <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:C.text}}>{data.pm25} <span style={{fontSize:10,color:C.muted}}>µg/m³</span></div>
@@ -697,6 +744,7 @@ function HourlyTrends({hourlyData, hasRealData}) {
 function History({data, monthData, hourlyData, hasRealHourly}) {
   const [range, setRange] = useState(HIST);
   const [activeCharts, setActiveCharts] = useState(['CO₂','PM2.5','Temperature','Humidity']);
+  const mobile = useIsMobile();
 
   const allCharts = [
     {label:'CO₂',        unit:'ppm',   val:data.co2,  hist:data.co2H,  color:'#5a8f3c', min:300, max:1300, thresh:1000, tl:'1000 ppm'},
@@ -714,10 +762,10 @@ function History({data, monthData, hourlyData, hasRealHourly}) {
   };
 
   return (
-    <div className="panel-scroll slide-in" style={{flex:1,padding:'20px 24px',display:'flex',gap:18,alignItems:'flex-start',width:'100%',minHeight:0,overflowY:'auto',overflowX:'hidden'}}>
+    <div className="panel-scroll slide-in" style={{flex:1,padding: mobile ? '12px' : '20px 24px',display:'flex',flexDirection: mobile ? 'column' : 'row',gap: mobile ? 12 : 18,alignItems:'flex-start',width:'100%',minHeight:0,overflowY:'auto',overflowX:'hidden'}}>
 
-      {/* Left: Monthly heatmap */}
-      <div style={{width:220,flexShrink:0,display:'flex',flexDirection:'column',gap:16,paddingTop:4}}>
+      {/* Calendar — full width on mobile, fixed sidebar on desktop */}
+      <div style={{width: mobile ? '100%' : 220,flexShrink:0,display:'flex',flexDirection:'column',gap:16,paddingTop: mobile ? 0 : 4}}>
         <MonthHeatmap monthData={monthData}/>
       </div>
 
@@ -793,8 +841,8 @@ function History({data, monthData, hourlyData, hasRealHourly}) {
         })}
       </div>
 
-      {/* Right: Hourly trends */}
-      <div style={{width:210,flexShrink:0,display:'flex',flexDirection:'column',gap:16,paddingTop:4}}>
+      {/* Hourly trends — full width on mobile, fixed sidebar on desktop */}
+      <div style={{width: mobile ? '100%' : 210,flexShrink:0,display:'flex',flexDirection:'column',gap:16,paddingTop: mobile ? 0 : 4}}>
         <HourlyTrends hourlyData={hourlyData} hasRealData={hasRealHourly}/>
       </div>
     </div>
@@ -885,15 +933,16 @@ function Controls({data, co2T, pm25T, setCo2T, setPm25T, deviceState}) {
   const level=getLevel(data.co2,data.pm25);
   const ledActive=led==='on'||(led==='auto'&&level==='danger');
   const co2Changed=co2Draft!==co2T, pm25Changed=pm25Draft!==pm25T;
+  const mobile = useIsMobile();
 
   return (
-    <div className="panel-scroll slide-in" style={{flex:1,padding:'28px 32px',maxWidth:800,margin:'0 auto',width:'100%'}}>
-      <div style={{marginBottom:24}}>
-        <div style={{fontFamily:"'Instrument Serif',serif",fontSize:22,color:C.text,fontWeight:300,marginBottom:4}}>Device Controls</div>
+    <div className="panel-scroll slide-in" style={{flex:1,padding: mobile ? '16px' : '28px 32px',maxWidth:800,margin:'0 auto',width:'100%'}}>
+      <div style={{marginBottom: mobile ? 16 : 24}}>
+        <div style={{fontFamily:"'Instrument Serif',serif",fontSize: mobile ? 20 : 22,color:C.text,fontWeight:300,marginBottom:4}}>Device Controls</div>
         <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,letterSpacing:'0.1em'}}>Commands sent to ESP32 via backend GET endpoint</div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+      <div style={{display:'grid',gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',gap: mobile ? 12 : 16}}>
 
         {/* LED Override */}
         <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow}}>
@@ -1082,7 +1131,7 @@ function buildHourlyData(history) {
 
 function App() {
   const data  = useSensor();
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useHashTab();
   const level = getLevel(data.co2, data.pm25);
 
   const [co2T,        setCo2T]        = useState(1000);
