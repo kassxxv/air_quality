@@ -1,682 +1,1191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Air Quality Monitor</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Air Quality — ESP32</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
-:root {
-  --bg:#f2ede3; --card:#fff; --border:#e5ddd0; --shadow:0 2px 14px rgba(0,0,0,.06);
-  --text:#2a2520; --muted:#8a8078; --radius:14px;
-  --good:#5a9e4a; --mod:#c8a030; --alarm:#d94040;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+  body { font-family: 'Space Grotesk', sans-serif; background: #f7f3ed; }
 
-/* NAV */
-nav{display:flex;align-items:center;padding:0 28px;height:50px;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-.logo{display:flex;align-items:center;gap:7px;font-weight:600;font-size:14px}
-.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--mod)}
-.logo sub{font-size:10px;color:var(--muted);font-weight:400;margin-left:1px}
-.tabs{display:flex;margin-left:36px}
-.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:14px 18px;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit;transition:.15s}
-.tab-btn.active{color:var(--text);border-bottom-color:var(--mod);font-weight:500}
-.nav-right{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:10px;color:var(--muted)}
-.conn{display:flex;align-items:center;gap:5px;font-weight:700;font-size:10px;letter-spacing:.06em}
-.conn-dot{width:7px;height:7px;border-radius:50%;background:#ccc;transition:.3s}
-.conn.on .conn-dot{background:var(--good)}
-.conn.on{color:var(--good)}
-.upd{text-align:right;line-height:1.5}
+  .panel-scroll { overflow-y: auto; overflow-x: hidden; }
+  .panel-scroll::-webkit-scrollbar { width: 4px; }
+  .panel-scroll::-webkit-scrollbar-track { background: transparent; }
+  .panel-scroll::-webkit-scrollbar-thumb { background: rgba(100,80,50,0.15); border-radius: 99px; }
 
-/* TABS */
-.tab{display:none;padding:24px 28px}.tab.active{display:block}
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 99px; outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 2px solid #f7f3ed; box-shadow: 0 1px 4px rgba(0,0,0,0.2); background: currentColor; }
+  input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 2px solid #f7f3ed; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
 
-/* CARDS */
-.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border)}
-
-/* ── OVERVIEW ── */
-.hero{background:linear-gradient(135deg,#c8a030 0%,#9a7020 100%);border-radius:var(--radius);padding:26px 30px;color:#fff;display:grid;grid-template-columns:170px 1fr;gap:20px;margin-bottom:18px}
-.hero-left{display:flex;flex-direction:column;justify-content:center}
-.hero-icon{font-size:26px;margin-bottom:6px;opacity:.9}
-.hero-score{font-size:60px;font-weight:200;line-height:1;letter-spacing:-2px}
-.hero-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;opacity:.65;margin:4px 0 10px}
-.hero-badge{display:inline-block;padding:2px 11px;border-radius:20px;font-size:10px;background:rgba(0,0,0,.2)}
-.hero-right{display:flex;flex-direction:column;justify-content:center}
-.hero-row{display:flex;align-items:center;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.12)}
-.hero-row:last-child{border-bottom:none}
-.hero-row-info{flex:1}
-.hero-row-name{font-size:9px;letter-spacing:.12em;text-transform:uppercase;opacity:.6;margin-bottom:3px}
-.hero-row-val{font-size:26px;font-weight:200;letter-spacing:-.5px}
-.hero-row-val span{font-size:11px;opacity:.6;margin-left:2px}
-.spark-sm{width:95px;height:34px}
-
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-.metric-card{display:flex;align-items:center;justify-content:space-between;padding:18px 22px}
-.mc-name{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.mc-val{font-size:30px;font-weight:200;letter-spacing:-1px}
-.mc-val span{font-size:12px;color:var(--muted);margin-left:2px}
-.spark-md{width:88px;height:38px}
-
-.gauge-card{padding:18px 26px;margin-bottom:14px}
-.gauge-hdr{display:flex;justify-content:space-between;margin-bottom:12px;font-size:10px}
-.gauge-hdr .name{letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.gauge-hdr .val{color:var(--text)}
-.gauge-hdr .val span{color:var(--muted);font-size:10px;margin-left:2px}
-.gauge-track{position:relative;height:5px;border-radius:3px;background:linear-gradient(to right,#5a9e4a,#a8c040,#e8b030,#e06040,#d04040);margin-bottom:8px}
-.gauge-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid #999;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:left .5s}
-.gauge-scale{display:flex;justify-content:space-between;font-size:9px;color:var(--muted)}
-
-/* ── HISTORY ── */
-.hist-layout{display:grid;grid-template-columns:188px 1fr 188px;gap:16px}
-.cal-panel{padding:18px}
-.cal-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-.cal-sub{font-size:9px;color:var(--muted);margin-bottom:14px}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cal-hdr{font-size:8px;text-align:center;color:var(--muted);padding:2px 0}
-.cal-day{aspect-ratio:1;border-radius:3px;background:var(--border);cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.8);transition:.15s}
-.cal-day:hover{opacity:.8}.cal-day.empty{background:transparent;cursor:default}
-.cal-day.good{background:var(--good)}.cal-day.mod{background:var(--mod)}.cal-day.alarm{background:var(--alarm)}
-.cal-day.sel{outline:2px solid var(--text);outline-offset:1px}
-.cal-legend{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.cal-leg{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--muted)}
-.cal-leg-dot{width:7px;height:7px;border-radius:2px}
-.day-popup{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:none}
-.day-popup.show{display:block}
-.dp-title{font-size:11px;font-weight:600;margin-bottom:6px}
-.dp-stats{display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:10px;color:var(--muted);margin-bottom:8px}
-
-.hist-main{}
-.hist-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.hist-title{font-size:15px;font-weight:500}
-.hist-sub{font-size:10px;color:var(--muted);margin-top:2px}
-.filters{display:flex;gap:3px}
-.f-btn{padding:4px 11px;border-radius:20px;border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted)}
-.f-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
-.hchart-card{padding:14px 18px;margin-bottom:10px}
-.hchart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.hchart-label{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
-.hchart-dot{width:7px;height:7px;border-radius:50%}
-.hchart-stats{display:flex;gap:12px;font-size:10px;color:var(--muted)}
-.hchart-stats .now{color:var(--text);font-weight:600;font-size:11px}
-
-.tod-panel{padding:18px}
-.tod-title{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.tod-sub{font-size:10px;color:var(--muted);margin-top:8px}
-
-/* ── CONTROLS ── */
-.ctrl-hdr{margin-bottom:20px}
-.ctrl-title{font-size:18px;font-weight:500}
-.ctrl-sub{font-size:11px;color:var(--muted);margin-top:3px}
-.ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.ctrl-card{padding:22px}
-.ctrl-card-hdr{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px}
-.ctrl-icon{width:34px;height:34px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.ctrl-card-name{font-size:13px;font-weight:500}
-.ctrl-card-sub{font-size:10px;color:var(--muted);margin-top:2px}
-.seg-group{display:grid;grid-template-columns:1fr 1fr 1fr;border-radius:7px;overflow:hidden;border:1px solid var(--border);margin-bottom:8px}
-.seg{padding:7px;border:none;background:none;font-size:11px;cursor:pointer;font-family:inherit;color:var(--muted);border-right:1px solid var(--border)}
-.seg:last-child{border-right:none}.seg.active{background:var(--text);color:#fff}
-.ctrl-status{font-size:10px;color:var(--muted)}
-.btn-full{width:100%;padding:9px;border-radius:7px;border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;font-family:inherit;color:var(--text);margin-bottom:8px;transition:.15s}
-.btn-full:hover{background:var(--bg)}.btn-full.on{background:var(--alarm);color:#fff;border-color:var(--alarm)}
-
-.sld-card{padding:22px}
-.sld-name{font-size:13px;font-weight:500}
-.sld-sub{font-size:10px;color:var(--muted);margin-bottom:14px}
-.sld-wrap{position:relative;padding-top:22px;margin-bottom:6px}
-.sld-bubble{position:absolute;top:0;transform:translateX(-50%);background:var(--text);color:#fff;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;pointer-events:none;white-space:nowrap}
-input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,#5a9e4a,#a8c040,#e8b030,#e06040,#d04040);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid #999;box-shadow:0 1px 4px rgba(0,0,0,.2);cursor:pointer}
-.sld-scale{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:10px}
-.sld-info{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-bottom:10px}
-.rbadge{display:flex;align-items:center;gap:6px;font-size:10px;padding:3px 9px;border-radius:5px;background:var(--bg)}
-.rbadge.ok{background:rgba(90,158,74,.1);color:var(--good)}.rbadge.alarm{background:rgba(217,64,64,.1);color:var(--alarm)}
-.btn-apply{float:right;padding:7px 18px;border-radius:7px;border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;font-family:inherit}
-.btn-apply:hover{background:var(--bg)}
-
-.bot-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
-.status-tbl{width:100%;border-collapse:collapse;font-size:11px}
-.status-tbl td{padding:5px 0;border-bottom:1px solid var(--border)}
-.status-tbl td:first-child{color:var(--muted);width:110px}
-.status-tbl td:last-child{text-align:right;font-family:monospace;font-size:10px}
-.status-tbl tr:last-child td{border-bottom:none}
-.log-list{display:flex;flex-direction:column;gap:5px;font-size:11px}
-.log-entry{display:flex;gap:10px}
-.log-ts{color:var(--muted);font-family:monospace;flex-shrink:0;font-size:10px}
+  @keyframes pulse-ring { 0%{transform:scale(0.92);opacity:0.7} 50%{transform:scale(1.08);opacity:0.3} 100%{transform:scale(0.92);opacity:0.7} }
+  @keyframes slide-in-up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fade-in { from{opacity:0} to{opacity:1} }
+  @keyframes banner-in { from{opacity:0;transform:translateY(-100%)} to{opacity:1;transform:translateY(0)} }
+  @keyframes banner-out { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-100%)} }
+  @keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .slide-in { animation: slide-in-up 0.35s cubic-bezier(.2,.8,.3,1) both; }
+  .fade-in  { animation: fade-in 0.25s ease both; }
+  .banner-in  { animation: banner-in  0.3s cubic-bezier(.2,.8,.3,1) both; }
+  .banner-out { animation: banner-out 0.25s ease both; }
 </style>
 </head>
 <body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
 
-<nav>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    Air Quality <sub>ESP32</sub>
-  </div>
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="overview" onclick="showTab(this,'overview')">Overview</button>
-    <button class="tab-btn" data-tab="history"  onclick="showTab(this,'history')">History</button>
-    <button class="tab-btn" data-tab="controls" onclick="showTab(this,'controls')">Controls</button>
-  </div>
-  <div class="nav-right">
-    <div class="conn" id="conn"><div class="conn-dot"></div><span id="conn-txt">WAITING</span></div>
-    <div class="upd">LAST UPDATE<br><span id="upd-time">—</span></div>
-  </div>
-</nav>
+// ─── Palette ────────────────────────────────────────────────────────────────
+const C = {
+  bg:        '#f7f3ed',
+  surface:   '#ffffff',
+  surfaceAlt:'#faf8f4',
+  border:    'rgba(80,60,30,0.10)',
+  borderMid: 'rgba(80,60,30,0.14)',
+  text:      '#231f18',
+  textMid:   '#5a5040',
+  muted:     '#9a8e7a',
+  shadow:    '0 1px 8px rgba(80,60,30,0.07)',
+  shadowMd:  '0 4px 20px rgba(80,60,30,0.10)',
+};
 
-<!-- ── OVERVIEW ─────────────────────────────────────────────────────────── -->
-<div class="tab active" id="tab-overview">
+// ─── Level helpers ───────────────────────────────────────────────────────────
+function getLevel(co2, pm25) {
+  if (co2 >= 1000 || pm25 >= 55) return 'danger';
+  if (co2 >= 800  || pm25 >= 35) return 'warning';
+  return 'good';
+}
+const HERO = {
+  good:    { from:'#2d6a2d', to:'#4a9e4a', b1:'#3d8b3d', b2:'#52c052', b3:'#70d070', label:'Clean Air',  pill:'Good' },
+  warning: { from:'#7a5000', to:'#c9941a', b1:'#b8860b', b2:'#d4a017', b3:'#e8c040', label:'Moderate',   pill:'Moderate' },
+  danger:  { from:'#6a1010', to:'#c02828', b1:'#8b1a1a', b2:'#b52020', b3:'#d84040', label:'Poor Air',   pill:'Poor' },
+};
 
-  <div class="hero">
-    <div class="hero-left">
-      <div class="hero-icon">🌿</div>
-      <div class="hero-score" id="h-score">—</div>
-      <div class="hero-lbl">Air Score</div>
-      <div class="hero-badge" id="h-badge">—</div>
-    </div>
-    <div class="hero-right">
-      <div class="hero-row">
-        <div class="hero-row-info">
-          <div class="hero-row-name">Carbon Dioxide</div>
-          <div class="hero-row-val"><span id="h-co2">—</span><span>ppm</span></div>
-        </div>
-        <canvas class="spark-sm" id="sp-co2"></canvas>
-      </div>
-      <div class="hero-row">
-        <div class="hero-row-info">
-          <div class="hero-row-name">Fine Particles</div>
-          <div class="hero-row-val"><span id="h-pm25">—</span><span>μg/m³</span></div>
-        </div>
-        <canvas class="spark-sm" id="sp-pm25"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div class="two-col">
-    <div class="card metric-card">
-      <div><div class="mc-name">Temperature</div><div class="mc-val"><span id="v-temp">—</span><span>°C</span></div></div>
-      <canvas class="spark-md" id="sp-temp"></canvas>
-    </div>
-    <div class="card metric-card">
-      <div><div class="mc-name">Humidity</div><div class="mc-val"><span id="v-hum">—</span><span>%RH</span></div></div>
-      <canvas class="spark-md" id="sp-hum"></canvas>
-    </div>
-  </div>
-
-  <div class="card gauge-card">
-    <div class="gauge-hdr"><div class="name">CO₂ Level</div><div class="val"><span id="g-co2">—</span><span>ppm</span></div></div>
-    <div class="gauge-track"><div class="gauge-dot" id="gd-co2" style="left:0%"></div></div>
-    <div class="gauge-scale"><span>400</span><span>600</span><span>800</span><span>1000</span><span>1200</span></div>
-  </div>
-
-  <div class="card gauge-card" style="margin-bottom:0">
-    <div class="gauge-hdr"><div class="name">PM2.5 Level</div><div class="val"><span id="g-pm25">—</span><span>μg/m³</span></div></div>
-    <div class="gauge-track"><div class="gauge-dot" id="gd-pm25" style="left:0%"></div></div>
-    <div class="gauge-scale"><span>0</span><span>20</span><span>35</span><span>55</span><span>90</span></div>
-  </div>
-
-</div>
-
-<!-- ── HISTORY ──────────────────────────────────────────────────────────── -->
-<div class="tab" id="tab-history">
-  <div class="hist-layout">
-
-    <div class="card cal-panel">
-      <div class="cal-title">Monthly Air Quality</div>
-      <div class="cal-sub">Daily score — click to expand</div>
-      <div class="cal-grid" id="cal-grid"></div>
-      <div class="cal-legend">
-        <div class="cal-leg"><div class="cal-leg-dot" style="background:var(--good)"></div>Good</div>
-        <div class="cal-leg"><div class="cal-leg-dot" style="background:var(--mod)"></div>Mod</div>
-        <div class="cal-leg"><div class="cal-leg-dot" style="background:var(--alarm)"></div>Alarm</div>
-      </div>
-      <div class="day-popup" id="day-popup">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div class="dp-title" id="dp-title">—</div>
-          <button onclick="closePopup()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px">✕</button>
-        </div>
-        <div class="dp-stats" id="dp-stats"></div>
-        <canvas id="dp-chart" height="70"></canvas>
-      </div>
-    </div>
-
-    <div class="hist-main">
-      <div class="hist-hdr">
-        <div><div class="hist-title">Sensor History</div><div class="hist-sub" id="hist-sub">—</div></div>
-        <div class="filters">
-          <button class="f-btn" onclick="setFilter(this,'30s')">30s</button>
-          <button class="f-btn" onclick="setFilter(this,'1m')">1m</button>
-          <button class="f-btn active" onclick="setFilter(this,'2m')">2m</button>
-          <button class="f-btn" onclick="setFilter(this,'all')">All</button>
-        </div>
-      </div>
-
-      <div class="card hchart-card">
-        <div class="hchart-hdr">
-          <div class="hchart-label"><div class="hchart-dot" style="background:#5a7e5a"></div>CO₂, ppm</div>
-          <div class="hchart-stats"><span class="now" id="hs-co2-now">—</span><span>MIN <b id="hs-co2-min">—</b></span><span>MAX <b id="hs-co2-max">—</b></span><span>AVG <b id="hs-co2-avg">—</b></span></div>
-        </div>
-        <canvas id="hc-co2" height="65"></canvas>
-      </div>
-      <div class="card hchart-card">
-        <div class="hchart-hdr">
-          <div class="hchart-label"><div class="hchart-dot" style="background:#7a6ea8"></div>PM2.5, μg/m³</div>
-          <div class="hchart-stats"><span class="now" id="hs-pm25-now">—</span><span>MIN <b id="hs-pm25-min">—</b></span><span>MAX <b id="hs-pm25-max">—</b></span><span>AVG <b id="hs-pm25-avg">—</b></span></div>
-        </div>
-        <canvas id="hc-pm25" height="65"></canvas>
-      </div>
-      <div class="card hchart-card">
-        <div class="hchart-hdr">
-          <div class="hchart-label"><div class="hchart-dot" style="background:#c8853a"></div>Temperature, °C</div>
-          <div class="hchart-stats"><span class="now" id="hs-temp-now">—</span><span>MIN <b id="hs-temp-min">—</b></span><span>MAX <b id="hs-temp-max">—</b></span><span>AVG <b id="hs-temp-avg">—</b></span></div>
-        </div>
-        <canvas id="hc-temp" height="65"></canvas>
-      </div>
-      <div class="card hchart-card">
-        <div class="hchart-hdr">
-          <div class="hchart-label"><div class="hchart-dot" style="background:#4a7abf"></div>Humidity, %RH</div>
-          <div class="hchart-stats"><span class="now" id="hs-hum-now">—</span><span>MIN <b id="hs-hum-min">—</b></span><span>MAX <b id="hs-hum-max">—</b></span><span>AVG <b id="hs-hum-avg">—</b></span></div>
-        </div>
-        <canvas id="hc-hum" height="65"></canvas>
-      </div>
-    </div>
-
-    <div class="card tod-panel">
-      <div class="tod-title">Time of Day</div>
-      <canvas id="tod-chart" height="180"></canvas>
-      <div class="tod-sub" id="tod-sub"></div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ── CONTROLS ─────────────────────────────────────────────────────────── -->
-<div class="tab" id="tab-controls">
-  <div class="ctrl-hdr">
-    <div class="ctrl-title">Device Controls</div>
-    <div class="ctrl-sub">Commands sent to ESP32 via backend GET endpoint</div>
-  </div>
-
-  <div class="ctrl-grid">
-    <div class="card ctrl-card">
-      <div class="ctrl-card-hdr">
-        <div class="ctrl-icon">💡</div>
-        <div><div class="ctrl-card-name">Red LED</div><div class="ctrl-card-sub">GPIO 23 · OVERRIDE</div></div>
-      </div>
-      <div class="seg-group">
-        <button class="seg active" id="led-auto" onclick="setLed('auto',this)">AUTO</button>
-        <button class="seg" id="led-on"   onclick="setLed('on',this)">ON</button>
-        <button class="seg" id="led-off"  onclick="setLed('off',this)">OFF</button>
-      </div>
-      <div class="ctrl-status" id="led-status">Status: OFF (auto)</div>
-    </div>
-
-    <div class="card ctrl-card">
-      <div class="ctrl-card-hdr">
-        <div class="ctrl-icon">🔔</div>
-        <div><div class="ctrl-card-name">Buzzer</div><div class="ctrl-card-sub">GPIO 15 · 1000 Hz</div></div>
-      </div>
-      <button class="btn-full" id="buz-btn" onclick="toggleBuzzer()">▶ Force constant tone</button>
-      <div class="ctrl-status" id="buz-status">Mode: Auto (state machine)</div>
-    </div>
-
-    <div class="card sld-card">
-      <div class="sld-name">CO₂ Alarm Threshold</div>
-      <div class="sld-sub">Triggers RED LED + buzzer</div>
-      <div class="sld-wrap">
-        <div class="sld-bubble" id="co2-bub">1000 ppm</div>
-        <input type="range" id="co2-sld" min="400" max="1200" step="50" value="1000" oninput="moveBub('co2')">
-      </div>
-      <div class="sld-scale"><span>400 ppm</span><span>800 ppm</span><span>1200 ppm</span></div>
-      <div class="sld-info">
-        <span>Active: <b id="co2-act">1000 ppm</b></span>
-        <div class="rbadge ok" id="co2-rbadge">— · OK</div>
-      </div>
-      <button class="btn-apply" onclick="applyThr('co2')">Apply</button>
-      <div style="clear:both"></div>
-    </div>
-
-    <div class="card sld-card">
-      <div class="sld-name">PM2.5 Alarm Threshold</div>
-      <div class="sld-sub">Triggers RED LED + buzzer</div>
-      <div class="sld-wrap">
-        <div class="sld-bubble" id="pm25-bub">55 μg/m³</div>
-        <input type="range" id="pm25-sld" min="12" max="100" step="1" value="55" oninput="moveBub('pm25')">
-      </div>
-      <div class="sld-scale"><span>12 μg/m³</span><span>55 μg/m³</span><span>100 μg/m³</span></div>
-      <div class="sld-info">
-        <span>Active: <b id="pm25-act">55 μg/m³</b></span>
-        <div class="rbadge ok" id="pm25-rbadge">— · OK</div>
-      </div>
-      <button class="btn-apply" onclick="applyThr('pm25')">Apply</button>
-      <div style="clear:both"></div>
-    </div>
-  </div>
-
-  <div class="bot-grid">
-    <div class="card ctrl-card">
-      <div style="font-size:13px;font-weight:500;margin-bottom:14px">Device Status</div>
-      <table class="status-tbl">
-        <tr><td>CO₂ sensor</td><td>SCD40 · I2C 0x62</td></tr>
-        <tr><td>Dust sensor</td><td>PMS5003T · UART</td></tr>
-        <tr><td>Display</td><td>SSD1306 OLED 128×64</td></tr>
-        <tr><td>LEDs</td><td>G:18  Y:19  R:23</td></tr>
-        <tr><td>Buzzer</td><td>GPIO 15 · passive</td></tr>
-        <tr><td>POST cadence</td><td>every 5s</td></tr>
-        <tr><td>GET cadence</td><td>every 2s</td></tr>
-      </table>
-    </div>
-    <div class="card ctrl-card">
-      <div style="font-size:13px;font-weight:500;margin-bottom:14px">Command Log</div>
-      <div class="log-list" id="cmd-log">
-        <div class="log-entry"><span class="log-ts">—</span><span>Ready · listening for commands</span></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-// ── State ────────────────────────────────────────────────────────────────────
-let hist = [], daily = {}, state = {co2_threshold:1000,pm25_threshold:55,buzzer:0};
-let activeTab = 'overview', filter = '2m', selDay = null, latest = null;
-const C = {};  // chart instances
-
-// ── Boot ─────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  initSparklines();
-  initHistCharts();
-  initTodChart();
-  buildCal();
-  moveBub('co2'); moveBub('pm25');
-  fetchAll();
-  setInterval(fetchAll, 5000);
-});
-
-// ── Tabs ─────────────────────────────────────────────────────────────────────
-function showTab(btn, name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  btn.classList.add('active');
-  activeTab = name;
-  if (name === 'history') fetchHistory();
+// ─── API helpers ─────────────────────────────────────────────────────────────
+async function apiFetch(path) {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+async function apiPost(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
 }
 
-// ── Fetch ────────────────────────────────────────────────────────────────────
-async function fetchAll() {
-  try {
-    const d = await fetch('/api/status').then(r => r.json());
-    latest = d.latest; hist = d.history || []; state = d.state || state;
-    setConn(!!latest);
-    if (latest && latest.co2 > 0) { renderOverview(d); renderCtrlState(d.state, d.log); }
-    if (activeTab === 'history') fetchHistory();
-  } catch { setConn(false); }
+// ─── Real sensor hook ────────────────────────────────────────────────────────
+const HIST = 80;
+
+function useSensor() {
+  const empty = () => Array(HIST).fill(0);
+  const [d, setD] = useState({
+    co2:0, pm25:0, temp:0, hum:0,
+    co2H: empty(), pm25H: empty(), tempH: empty(), humH: empty(),
+    ts: new Date(),
+  });
+
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const [status, hist] = await Promise.all([
+          apiFetch('/api/status'),
+          apiFetch('/api/history'),
+        ]);
+        if (!status.latest || status.latest.co2 === 0) return;
+
+        const raw   = hist.history || [];
+        const last  = raw.slice(-HIST);
+        const pad   = HIST - last.length;
+        const first = last[0] || status.latest;
+        const padded = [...Array(pad).fill(first), ...last];
+
+        setD({
+          co2:  status.latest.co2,
+          pm25: status.latest.pm25,
+          temp: status.latest.temp,
+          hum:  status.latest.hum,
+          co2H:  padded.map(r => r.co2  || 0),
+          pm25H: padded.map(r => r.pm25 || 0),
+          tempH: padded.map(r => r.temp || 0),
+          humH:  padded.map(r => r.hum  || 0),
+          ts: new Date(status.latest.ts),
+        });
+      } catch(e) {}
+    };
+    poll();
+    const t = setInterval(poll, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  return d;
 }
 
-async function fetchHistory() {
-  try {
-    const [h, dly] = await Promise.all([
-      fetch('/api/history').then(r => r.json()),
-      fetch('/api/daily').then(r => r.json()),
-    ]);
-    hist = h.history || []; daily = dly || {};
-    renderHistCharts(); renderCal(); renderTod();
-  } catch {}
+// ─── Real connection status ──────────────────────────────────────────────────
+function useConnectionStatus() {
+  const [status, setStatus] = useState('offline');
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const data = await apiFetch('/api/status');
+        const age  = data.latest ? Date.now() - data.latest.ts : Infinity;
+        setStatus(age < 15000 ? 'connected' : age < 60000 ? 'degraded' : 'offline');
+      } catch(e) { setStatus('offline'); }
+    };
+    check();
+    const t = setInterval(check, 5000);
+    return () => clearInterval(t);
+  }, []);
+  return status;
 }
 
-// ── Nav ───────────────────────────────────────────────────────────────────────
-function setConn(ok) {
-  document.getElementById('conn').className = 'conn' + (ok ? ' on' : '');
-  document.getElementById('conn-txt').textContent = ok ? 'CONNECTED' : 'WAITING';
-  if (latest) document.getElementById('upd-time').textContent =
-    new Date(latest.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+// ─── Sparkline ───────────────────────────────────────────────────────────────
+function Spark({data, color, w=160, h=40, fill=false}) {
+  const nonzero = data.filter(v => v > 0);
+  if (!nonzero.length) return <svg width={w} height={h}/>;
+  const mn=Math.min(...nonzero), mx=Math.max(...nonzero), rng=mx-mn||1;
+  const pts=data.map((v,i)=>{
+    const x=(i/(data.length-1))*w;
+    const y=h-((Math.max(v,mn)-mn)/rng)*(h-6)-3;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const line=`M ${pts.join(' L ')}`;
+  const area=`${line} L ${w},${h} L 0,${h} Z`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',overflow:'visible'}}>
+      {fill && <path d={area} fill={color} opacity="0.10"/>}
+      <path d={line} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
 }
 
-// ── Overview ──────────────────────────────────────────────────────────────────
-function renderOverview(d) {
-  const r = d.latest;
-  $('h-score',  d.score ?? '—');
-  $('h-badge',  d.label ?? '—');
-  $('h-co2',   r.co2);
-  $('h-pm25',  r.pm25.toFixed(1));
-  $('v-temp',  r.temp.toFixed(1));
-  $('v-hum',   r.hum.toFixed(1));
-  $('g-co2',   r.co2);
-  $('g-pm25',  r.pm25.toFixed(1));
-
-  const lbl = d.label;
-  document.getElementById('h-badge').style.background =
-    lbl==='Good' ? 'rgba(90,158,74,.3)' : lbl==='Alarm' ? 'rgba(217,64,64,.3)' : 'rgba(0,0,0,.2)';
-
-  gauge('gd-co2',  r.co2,  400, 1200);
-  gauge('gd-pm25', r.pm25, 0,   90);
-
-  const last = hist.slice(-20);
-  spark(C.spCo2,  last.map(x => x.co2));
-  spark(C.spPm25, last.map(x => x.pm25));
-  spark(C.spTemp, last.map(x => x.temp));
-  spark(C.spHum,  last.map(x => x.hum));
+// ─── Full chart with threshold + live dot ─────────────────────────────────────
+function FullChart({data, color, w, h, min, max, thresh, thLabel}) {
+  const nonzero = data.filter(v => v > 0);
+  if (!nonzero.length || w < 2 || h < 2) return <svg width={w} height={h}/>;
+  const rng=max-min;
+  const toY=v=>h-((Math.max(Math.min(v,max),min)-min)/rng)*(h-12)-6;
+  const pts=data.map((v,i)=>`${((i/(data.length-1))*w).toFixed(1)},${toY(v).toFixed(1)}`);
+  const line=`M ${pts.join(' L ')}`;
+  const area=`${line} L ${w},${h} L 0,${h} Z`;
+  const thY=toY(thresh);
+  const lx=w, ly=toY(data[data.length-1]);
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',overflow:'visible'}}>
+      <line x1={0} y1={thY} x2={w} y2={thY} stroke={color} strokeWidth="1" strokeDasharray="5,4" opacity="0.35"/>
+      <text x={4} y={thY-5} fill={color} fontSize="9" fontFamily="'DM Mono',monospace" opacity="0.6">{thLabel}</text>
+      <path d={area} fill={color} opacity="0.07"/>
+      <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx={lx} cy={ly} r="8" fill={color} opacity="0.15"/>
+      <circle cx={lx} cy={ly} r="4" fill={color}/>
+    </svg>
+  );
 }
 
-function gauge(id, v, mn, mx) {
-  const pct = Math.min(100, Math.max(0, (v - mn) / (mx - mn) * 100));
-  document.getElementById(id).style.left = pct + '%';
+function AutoChart({data, color, min, max, thresh, thLabel}) {
+  const ref=useRef(null);
+  const [sz,setSz]=useState({w:400,h:100});
+  useEffect(()=>{
+    if(!ref.current) return;
+    const ro=new ResizeObserver(es=>{
+      for(const e of es) setSz({w:Math.floor(e.contentRect.width),h:Math.floor(e.contentRect.height)});
+    });
+    ro.observe(ref.current);
+    return ()=>ro.disconnect();
+  },[]);
+  return <div ref={ref} style={{width:'100%',height:'100%'}}>
+    <FullChart data={data} color={color} w={sz.w} h={sz.h} min={min} max={max} thresh={thresh} thLabel={thLabel}/>
+  </div>;
 }
 
-// ── Sparklines ────────────────────────────────────────────────────────────────
-function mkSpark(id, color) {
-  return new Chart(document.getElementById(id), {
-    type: 'line',
-    data: { labels: [], datasets: [{ data: [], borderColor: color, borderWidth: 1.5, pointRadius: 0, tension: .4, fill: false }] },
-    options: { responsive:false, animation:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false}} }
+// ─── Leaf icon ────────────────────────────────────────────────────────────────
+function LeafIcon({size=36}) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" style={{display:'block'}}>
+      <path d="M24 6 C12 6,6 18,6 28 C6 38,14 44,24 44 C34 44,42 38,42 28 C42 18,36 6,24 6Z" fill="rgba(255,255,255,0.18)"/>
+      <path d="M24 10 C15 10,9 20,9 28 C9 36,15 42,24 42 C33 42,39 36,39 28 C39 20,33 10,24 10Z" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.3"/>
+      <line x1="24" y1="42" x2="24" y2="15" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
+      <path d="M24 30 Q17 23 13 18" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" fill="none"/>
+      <path d="M24 25 Q31 19 35 16" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" fill="none"/>
+    </svg>
+  );
+}
+
+// ─── Alarm banner ─────────────────────────────────────────────────────────────
+function AlarmBanner({data, co2T, pm25T, dismissed, onDismiss}) {
+  const co2Alarm  = data.co2  >= co2T && data.co2  > 0;
+  const pm25Alarm = data.pm25 >= pm25T && data.pm25 > 0;
+  const active    = co2Alarm || pm25Alarm;
+  const [exiting, setExiting] = useState(false);
+
+  useEffect(() => {
+    if (!active && !dismissed) setExiting(true);
+    if (active) setExiting(false);
+  }, [active]);
+
+  const handleDismiss = () => { setExiting(true); setTimeout(onDismiss, 260); };
+
+  if ((!active && !exiting) || dismissed) return null;
+
+  const msgs = [];
+  if (co2Alarm)  msgs.push(`CO₂ ${data.co2} ppm ≥ ${co2T} ppm threshold`);
+  if (pm25Alarm) msgs.push(`PM2.5 ${data.pm25} µg/m³ ≥ ${pm25T} µg/m³ threshold`);
+
+  return (
+    <div className={exiting ? 'banner-out' : 'banner-in'} style={{
+      flexShrink:0, background:'linear-gradient(90deg,#7a1010,#c02828)', color:'#fff',
+      display:'flex', alignItems:'center', gap:12, padding:'10px 24px',
+      boxShadow:'0 2px 12px rgba(192,40,40,0.35)',
+    }}>
+      <div style={{width:8,height:8,borderRadius:'50%',background:'#fff',flexShrink:0,animation:'blink-dot 1s ease-in-out infinite'}}/>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <line x1="12" y1="9" x2="12" y2="13" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+        <line x1="12" y1="17" x2="12.01" y2="17" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+      <div style={{flex:1}}>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.12em',fontWeight:500}}>AIR QUALITY ALARM — </span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,opacity:0.9}}>{msgs.join(' · ')}</span>
+      </div>
+      <button onClick={handleDismiss} style={{
+        background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.3)',
+        color:'#fff',borderRadius:8,padding:'4px 12px',cursor:'pointer',
+        fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:'0.1em',flexShrink:0,
+      }}>DISMISS</button>
+    </div>
+  );
+}
+
+// ─── Nav ──────────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id:'overview', label:'Overview' },
+  { id:'history',  label:'History'  },
+  { id:'controls', label:'Controls' },
+];
+
+function ConnectionBadge({status}) {
+  const cfg = {
+    connected: { color:'#4a9e4a', bg:'rgba(74,158,74,0.10)', label:'Connected', dot:'#4a9e4a' },
+    degraded:  { color:'#c9941a', bg:'rgba(201,148,26,0.10)', label:'Degraded',  dot:'#c9941a' },
+    offline:   { color:'#c02828', bg:'rgba(192,40,40,0.10)', label:'Offline',   dot:'#c02828' },
+  }[status] || { color:'#c02828', bg:'rgba(192,40,40,0.10)', label:'Offline', dot:'#c02828' };
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:7,padding:'5px 12px',borderRadius:99,background:cfg.bg,border:`1px solid ${cfg.color}22`}}>
+      <div style={{position:'relative',width:8,height:8,flexShrink:0}}>
+        {status==='connected' && <div style={{position:'absolute',inset:0,borderRadius:'50%',background:cfg.dot,opacity:0.4,animation:'pulse-ring 2s ease-in-out infinite'}}/>}
+        <div style={{position:'absolute',inset:status==='connected'?1:0,borderRadius:'50%',background:cfg.dot}}/>
+      </div>
+      <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:cfg.color,letterSpacing:'0.1em',whiteSpace:'nowrap'}}>{cfg.label.toUpperCase()}</span>
+    </div>
+  );
+}
+
+function LiveClock() {
+  const [t,setT]=useState(new Date().toLocaleTimeString());
+  useEffect(()=>{ const i=setInterval(()=>setT(new Date().toLocaleTimeString()),1000); return()=>clearInterval(i); },[]);
+  return <span>{t}</span>;
+}
+
+function NavBar({tab, setTab, level}) {
+  const dot = { good:'#4a9e4a', warning:'#c9941a', danger:'#c02828' }[level] || '#ccc';
+  const connStatus = useConnectionStatus();
+  return (
+    <header style={{
+      height:56, flexShrink:0, background:C.surface,
+      borderBottom:`1px solid ${C.border}`,
+      display:'flex', alignItems:'center', padding:'0 28px', gap:0,
+      boxShadow:C.shadow, position:'relative', zIndex:100,
+    }}>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginRight:36}}>
+        <div style={{position:'relative',width:20,height:20}}>
+          <div style={{position:'absolute',inset:0,borderRadius:'50%',background:dot,opacity:0.25,animation:'pulse-ring 2.4s ease-in-out infinite'}}/>
+          <div style={{position:'absolute',inset:4,borderRadius:'50%',background:dot}}/>
+        </div>
+        <span style={{fontFamily:"'Instrument Serif',serif",fontSize:18,color:C.text,fontWeight:400,letterSpacing:'-0.01em'}}>Air Quality</span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.12em',marginTop:2}}>ESP32</span>
+      </div>
+
+      <nav style={{display:'flex',gap:2,flex:1,position:'relative',zIndex:1}}>
+        {NAV_ITEMS.map(n=>{
+          const active=tab===n.id;
+          return (
+            <button key={n.id} onClick={()=>setTab(n.id)} style={{
+              padding:'6px 16px',border:'none',background:'transparent',cursor:'pointer',
+              fontFamily:"'Space Grotesk',sans-serif",fontSize:13,fontWeight:active?500:400,
+              color:active?C.text:C.muted, borderRadius:8,position:'relative',transition:'color 0.15s',zIndex:2,
+            }}>
+              {n.label}
+              {active && <div style={{position:'absolute',bottom:-1,left:12,right:12,height:2,background:C.text,borderRadius:'2px 2px 0 0'}}/>}
+            </button>
+          );
+        })}
+      </nav>
+
+      <div style={{display:'flex',alignItems:'center',gap:16,flexShrink:0}}>
+        <ConnectionBadge status={connStatus}/>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,letterSpacing:'0.08em',textAlign:'right'}}>
+          <div style={{fontSize:8,letterSpacing:'0.14em',marginBottom:1}}>LAST UPDATE</div>
+          <LiveClock/>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function Overview({data, score, scoreLabel}) {
+  const level=getLevel(data.co2, data.pm25);
+  const hc=HERO[level];
+  const airScore = score ?? (level==='good'
+    ? Math.min(99,Math.max(40,Math.round(100-(data.co2-400)/8-data.pm25)))
+    : level==='warning' ? 55 : 20);
+  const statusLabel = scoreLabel ?? hc.pill;
+
+  const co2Pct  = Math.min(98,((data.co2 -400)/800)*100);
+  const scoreColor = {good:'#4a9e4a',warning:'#c9941a',danger:'#c02828'}[level];
+
+  return (
+    <div className="panel-scroll slide-in" style={{flex:1,padding:'28px 32px',display:'flex',flexDirection:'column',gap:20,maxWidth:860,margin:'0 auto',width:'100%'}}>
+
+      {/* Hero card */}
+      <div style={{
+        borderRadius:28, background:`linear-gradient(135deg,${hc.from},${hc.to})`,
+        position:'relative', overflow:'hidden', padding:'28px 32px',
+        boxShadow:`0 8px 40px ${hc.b1}40`,
+        transition:'background 1.2s ease, box-shadow 1.2s ease', flexShrink:0,
+      }}>
+        <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0.16,pointerEvents:'none'}} viewBox="0 0 860 200" preserveAspectRatio="xMidYMid slice">
+          <circle cx="740" cy="30"  r="160" fill={hc.b3}/>
+          <circle cx="80"  cy="180" r="130" fill={hc.b2}/>
+          <circle cx="420" cy="220" r="150" fill={hc.b1}/>
+          <circle cx="200" cy="-20" r="90"  fill={hc.b3}/>
+        </svg>
+        <div style={{position:'relative',display:'flex',gap:32,alignItems:'stretch'}}>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minWidth:140,paddingRight:32,borderRight:'1px solid rgba(255,255,255,0.2)'}}>
+            <LeafIcon size={38}/>
+            <div style={{fontSize:64,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif",letterSpacing:'-0.03em',marginTop:8}}>{airScore}</div>
+            <div style={{fontSize:9,color:'rgba(255,255,255,0.65)',textTransform:'uppercase',letterSpacing:'0.16em',marginTop:4,fontFamily:"'DM Mono',monospace"}}>Air Score</div>
+            <div style={{marginTop:12,fontSize:12,color:'#fff',fontFamily:"'DM Mono',monospace",letterSpacing:'0.06em',background:'rgba(255,255,255,0.18)',borderRadius:99,padding:'4px 14px',backdropFilter:'blur(4px)'}}>{statusLabel}</div>
+          </div>
+          <div style={{flex:1,display:'flex',flexDirection:'column',gap:14}}>
+            {[
+              {label:'Carbon Dioxide', val:data.co2,  unit:'ppm',   hist:data.co2H,  spark:data.co2>=1000?'#ffb0b0':data.co2>=800?'#ffe0a0':'#b0ffb0'},
+              {label:'Fine Particles', val:data.pm25, unit:'µg/m³', hist:data.pm25H, spark:data.pm25>=55?'#ffb0b0':data.pm25>=35?'#ffe0a0':'#b0ffb0'},
+            ].map(m=>(
+              <div key={m.label} style={{background:'rgba(255,255,255,0.13)',borderRadius:18,padding:'14px 20px',backdropFilter:'blur(8px)',flex:1}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+                  <div>
+                    <div style={{fontSize:9,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:'0.14em',fontFamily:"'DM Mono',monospace",marginBottom:4}}>{m.label}</div>
+                    <div style={{fontSize:36,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif"}}>
+                      {m.val || '—'}<span style={{fontSize:13,color:'rgba(255,255,255,0.6)',marginLeft:6}}>{m.unit}</span>
+                    </div>
+                  </div>
+                  <Spark data={m.hist} color={m.spark} w={120} h={38} fill/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Temp + Humidity */}
+      <div style={{display:'flex',gap:16,flexShrink:0}}>
+        {[
+          {label:'Temperature', val:data.temp.toFixed(1), unit:'°C',  hist:data.tempH, color:'#b07030'},
+          {label:'Humidity',    val:data.hum.toFixed(1),  unit:'%RH', hist:data.humH,  color:'#4a7a9a'},
+        ].map(m=>(
+          <div key={m.label} style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px 24px',boxShadow:C.shadow}}>
+            <div style={{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace",marginBottom:10}}>{m.label}</div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+              <div style={{fontFamily:"'Instrument Serif',serif",fontSize:40,color:C.text,fontWeight:300,lineHeight:1}}>
+                {m.val}<span style={{fontSize:14,color:C.muted,marginLeft:4}}>{m.unit}</span>
+              </div>
+              <Spark data={m.hist} color={m.color} w={100} h={36}/>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CO₂ range bar */}
+      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px 24px',boxShadow:C.shadow,flexShrink:0}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
+          <div style={{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace"}}>CO₂ Level</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.text}}>{data.co2} <span style={{fontSize:10,color:C.muted}}>ppm</span></div>
+        </div>
+        <div style={{height:10,borderRadius:99,background:'rgba(80,60,30,0.07)',position:'relative'}}>
+          <div style={{position:'absolute',inset:0,borderRadius:99,background:'linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)',opacity:0.22}}/>
+          <div style={{position:'absolute',left:0,top:0,height:'100%',width:`${co2Pct}%`,background:'linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)',borderRadius:99,transition:'width 0.7s ease',opacity:0.8}}/>
+          <div style={{position:'absolute',left:`${Math.min(96,co2Pct)}%`,top:'50%',transform:'translate(-50%,-50%)',width:18,height:18,borderRadius:'50%',background:scoreColor,border:`3px solid ${C.surface}`,boxShadow:`0 0 0 2px ${scoreColor}55`,transition:'left 0.7s ease'}}/>
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+          {['400','600','800','1000','1200'].map(v=>(
+            <span key={v} style={{fontSize:9,color:C.muted,fontFamily:"'DM Mono',monospace"}}>{v}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* PM2.5 range bar */}
+      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px 24px',boxShadow:C.shadow,flexShrink:0}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
+          <div style={{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace"}}>PM2.5 Level</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:13,color:C.text}}>{data.pm25} <span style={{fontSize:10,color:C.muted}}>µg/m³</span></div>
+        </div>
+        <div style={{height:10,borderRadius:99,background:'rgba(80,60,30,0.07)',position:'relative'}}>
+          <div style={{position:'absolute',inset:0,borderRadius:99,background:'linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)',opacity:0.22}}/>
+          <div style={{position:'absolute',left:0,top:0,height:'100%',width:`${Math.min(98,(data.pm25/80)*100)}%`,background:'linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)',borderRadius:99,transition:'width 0.7s ease',opacity:0.8}}/>
+          <div style={{position:'absolute',left:`${Math.min(96,(data.pm25/80)*100)}%`,top:'50%',transform:'translate(-50%,-50%)',width:18,height:18,borderRadius:'50%',background:data.pm25>=55?'#c02828':data.pm25>=35?'#c9941a':'#4a9e4a',border:`3px solid ${C.surface}`,transition:'left 0.7s ease'}}/>
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
+          {['0','20','35','55','80'].map(v=>(
+            <span key={v} style={{fontSize:9,color:C.muted,fontFamily:"'DM Mono',monospace"}}>{v}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RANGE_OPTIONS = [
+  { label:'30s', points: 6  },
+  { label:'1m',  points: 12 },
+  { label:'2m',  points: 24 },
+  { label:'All', points: HIST },
+];
+
+function scoreToColor(score) {
+  if (score === null || score === undefined) return 'rgba(80,60,30,0.06)';
+  if (score >= 80) return '#4a9e4a';
+  if (score >= 60) return '#7ec87e';
+  if (score >= 40) return '#c9941a';
+  if (score >= 20) return '#e07070';
+  return '#c02828';
+}
+
+// Generate fake per-hour detail for days without real data
+function genDayDetail(seed) {
+  const co2Base  = 500 + ((seed * 37) % 300);
+  const pm25Base = 8   + ((seed * 13) % 25);
+  return Array.from({length:24}, (_,h) => ({
+    h,
+    co2:  Math.round(co2Base  + Math.sin(h/4)*80  + (((seed*h*7)%40)-20)),
+    pm25: +(pm25Base + Math.sin(h/3)*6   + (((seed*h*3)%8)-4)).toFixed(1),
+  }));
+}
+
+function DayDetailPanel({day, onClose}) {
+  const color  = scoreToColor(day.score);
+  const detail = genDayDetail(day.date.getDate() + day.date.getMonth()*31);
+  const maxCo2 = Math.max(...detail.map(d=>d.co2));
+  const minCo2 = Math.min(...detail.map(d=>d.co2));
+  const avgCo2 = Math.round(detail.reduce((a,b)=>a+b.co2,0)/24);
+  return (
+    <div className="fade-in" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:18,padding:'16px',boxShadow:C.shadowMd,marginTop:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
+        <div>
+          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:12,color:C.text,fontWeight:500}}>
+            {day.date.toLocaleDateString('en',{weekday:'long',month:'short',day:'numeric'})}
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
+            <div style={{width:10,height:10,borderRadius:3,background:color}}/>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>Score {day.score ?? '—'}</span>
+          </div>
+        </div>
+        <button onClick={onClose} style={{background:'transparent',border:'none',cursor:'pointer',color:C.muted,fontSize:14,padding:'2px 6px',lineHeight:1}}>✕</button>
+      </div>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,marginBottom:6,letterSpacing:'0.1em'}}>CO₂ · 24h</div>
+      <div style={{display:'flex',alignItems:'flex-end',gap:1.5,height:40,marginBottom:6}}>
+        {detail.map((d,i)=>{
+          const hPx=Math.max(2,((d.co2-minCo2)/(maxCo2-minCo2||1))*36);
+          const over=d.co2>=1000;
+          return <div key={i} title={`${d.h}:00 — ${d.co2} ppm`} style={{flex:1,height:hPx,borderRadius:'2px 2px 0 0',background:over?'#c02828':d.co2>=800?'#c9941a':'#5a8f3c',opacity:0.75}}/>;
+        })}
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>12am</span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>12pm</span>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>11pm</span>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
+        {[
+          {l:'AVG CO₂',  v:`${avgCo2} ppm`, c:'#5a8f3c'},
+          {l:'PEAK CO₂', v:`${maxCo2} ppm`, c:maxCo2>=1000?'#c02828':'#c9941a'},
+          {l:'LOW CO₂',  v:`${minCo2} ppm`, c:'#5a8f3c'},
+        ].map(s=>(
+          <div key={s.l} style={{background:C.surfaceAlt,borderRadius:10,padding:'8px 8px',textAlign:'center'}}>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,marginBottom:3,letterSpacing:'0.08em'}}>{s.l}</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:s.c}}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MonthHeatmap({monthData}) {
+  const [tooltip,  setTooltip]  = useState(null);
+  const [selected, setSelected] = useState(null);
+
+  const weeks = [];
+  let week = [];
+  const firstDay = monthData.length ? monthData[0].date.getDay() : 0;
+  for (let i = 0; i < firstDay; i++) week.push(null);
+  monthData.forEach(d => {
+    week.push(d);
+    if (week.length === 7) { weeks.push(week); week = []; }
+  });
+  if (week.length) { while (week.length < 7) week.push(null); weeks.push(week); }
+
+  const DAY_LABELS = ['S','M','T','W','T','F','S'];
+  const now = new Date();
+
+  return (
+    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px 20px',boxShadow:C.shadow,position:'relative'}}>
+      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:13,color:C.text,fontWeight:500,marginBottom:4}}>Monthly Air Quality</div>
+      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:14,letterSpacing:'0.08em'}}>Daily score · click a day to expand</div>
+      <div style={{display:'flex',gap:3,marginBottom:4}}>
+        {DAY_LABELS.map((l,i)=>(
+          <div key={i} style={{width:22,textAlign:'center',fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>{l}</div>
+        ))}
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:3}}>
+        {weeks.map((wk,wi)=>(
+          <div key={wi} style={{display:'flex',gap:3}}>
+            {wk.map((d,di)=>{
+              if (!d) return <div key={di} style={{width:22,height:22}}/>;
+              const isToday    = d.date.toDateString()===now.toDateString();
+              const isSelected = selected && selected.date.toDateString()===d.date.toDateString();
+              const color = d.future ? 'rgba(80,60,30,0.04)' : scoreToColor(d.score);
+              return (
+                <div key={di}
+                  onMouseEnter={()=>!d.future&&setTooltip(d)}
+                  onMouseLeave={()=>setTooltip(null)}
+                  onClick={()=>{ if(d.future) return; setSelected(isSelected?null:d); setTooltip(null); }}
+                  style={{
+                    width:22,height:22,borderRadius:5,background:color,
+                    border:isSelected?`2px solid ${C.text}`:isToday?`2px solid ${C.textMid}`:'2px solid transparent',
+                    cursor:d.future?'default':'pointer',
+                    transform:isSelected?'scale(1.15)':'scale(1)',
+                    transition:'transform 0.15s, border 0.15s',
+                    boxShadow:isSelected?`0 2px 8px ${color}80`:'none',
+                  }}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      {tooltip && !selected && (
+        <div style={{
+          position:'absolute',bottom:'100%',left:'50%',transform:'translateX(-50%)',
+          marginBottom:8,background:C.text,color:'#fff',
+          fontFamily:"'DM Mono',monospace",fontSize:9,padding:'6px 10px',borderRadius:8,
+          pointerEvents:'none',whiteSpace:'nowrap',zIndex:10,boxShadow:'0 4px 12px rgba(0,0,0,0.2)',
+        }}>
+          {tooltip.date.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'})} · Score {tooltip.score ?? 'no data'}
+          <div style={{position:'absolute',top:'100%',left:'50%',transform:'translateX(-50%)',width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',borderTop:`5px solid ${C.text}`}}/>
+        </div>
+      )}
+      <div style={{display:'flex',alignItems:'center',gap:6,marginTop:14}}>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>Poor</span>
+        {['#c02828','#e07070','#c9941a','#7ec87e','#4a9e4a'].map(c=>(
+          <div key={c} style={{width:14,height:14,borderRadius:3,background:c}}/>
+        ))}
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>Good</span>
+      </div>
+      {selected && <DayDetailPanel day={selected} onClose={()=>setSelected(null)}/>}
+    </div>
+  );
+}
+
+function HourlyTrends({hourlyData}) {
+  const [metric, setMetric] = useState('co2');
+  const metricCfg = {
+    co2:  {label:'CO₂',  unit:'ppm',   color:'#5a8f3c', min:380, max:750},
+    pm25: {label:'PM2.5',unit:'µg/m³', color:'#7c6bb0', min:4,   max:26 },
+    temp: {label:'Temp', unit:'°C',    color:'#b07030', min:15,  max:24 },
+    hum:  {label:'Hum',  unit:'%RH',   color:'#3a7a9a', min:40,  max:65 },
+  };
+  const cfg = metricCfg[metric];
+  const vals = hourlyData.map(h=>h[metric]);
+  const mn=Math.min(...vals.filter(v=>v!=null)), mx=Math.max(...vals.filter(v=>v!=null)), rng=mx-mn||1;
+  const barH=80;
+  const nowHour=new Date().getHours();
+
+  return (
+    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px 20px',boxShadow:C.shadow,display:'flex',flexDirection:'column',gap:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div>
+          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:13,color:C.text,fontWeight:500,marginBottom:4}}>Time of Day</div>
+          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.08em'}}>Hourly avg · today</div>
+        </div>
+        <div style={{display:'flex',gap:3,background:C.surfaceAlt,border:`1px solid ${C.border}`,borderRadius:10,padding:3}}>
+          {Object.entries(metricCfg).map(([k,v])=>{
+            const act=metric===k;
+            return (
+              <button key={k} onClick={()=>setMetric(k)} style={{
+                padding:'3px 8px',border:'none',cursor:'pointer',borderRadius:7,
+                background:act?C.surface:'transparent',color:act?v.color:C.muted,
+                fontFamily:"'DM Mono',monospace",fontSize:8,letterSpacing:'0.06em',
+                boxShadow:act?C.shadow:'none',transition:'all 0.15s',
+              }}>{v.label}</button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{display:'flex',alignItems:'flex-end',gap:2,height:barH,position:'relative'}}>
+        {hourlyData.map((h,i)=>{
+          const v=h[metric];
+          const hPx=v!=null ? Math.max(4,((v-mn)/rng)*(barH-8)) : 2;
+          const isNow=h.hour===nowHour;
+          return (
+            <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',height:'100%',position:'relative',cursor:'default'}}>
+              <div title={`${h.hour}:00 — ${v!=null?`${v} ${cfg.unit}`:'no data'}`} style={{
+                width:'100%',height:hPx,borderRadius:'3px 3px 0 0',
+                background:isNow?cfg.color:v!=null?cfg.color+'80':'rgba(80,60,30,0.08)',
+                border:isNow?`1.5px solid ${cfg.color}`:'none',
+                transition:'height 0.3s ease',boxSizing:'border-box',
+              }}/>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{display:'flex',justifyContent:'space-between',marginTop:-4}}>
+        {[0,4,8,12,16,20,23].map(h=>(
+          <span key={h} style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:h===nowHour?cfg.color:C.muted}}>
+            {h===0?'12a':h<12?`${h}a`:h===12?'12p':`${h-12}p`}
+          </span>
+        ))}
+      </div>
+
+      {(() => {
+        const validVals = vals.filter(v=>v!=null);
+        if (!validVals.length) return null;
+        const peakIdx=vals.indexOf(Math.max(...validVals));
+        const peakH=hourlyData[peakIdx]?.hour ?? 0;
+        const peakV=vals[peakIdx];
+        const label=peakH<12?`${peakH}am`:peakH===12?'12pm':`${peakH-12}pm`;
+        return (
+          <div style={{display:'flex',justifyContent:'space-between',padding:'8px 12px',borderRadius:10,background:cfg.color+'10',border:`1px solid ${cfg.color}22`}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>Peak: <span style={{color:cfg.color}}>{label}</span></span>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:cfg.color}}>{peakV} {cfg.unit}</span>
+          </div>
+        );
+      })()}
+
+      <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 12px',borderRadius:10,background:'rgba(80,60,30,0.04)',border:`1px solid ${C.border}`}}>
+        <div style={{width:7,height:7,borderRadius:'50%',background:cfg.color,flexShrink:0}}/>
+        <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
+          Now ({nowHour}:00): <span style={{color:cfg.color}}>{vals[nowHour]!=null ? `${vals[nowHour]} ${cfg.unit}` : 'no data'}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function History({data, monthData, hourlyData}) {
+  const [range, setRange] = useState(HIST);
+  const [activeCharts, setActiveCharts] = useState(['CO₂','PM2.5','Temperature','Humidity']);
+
+  const allCharts = [
+    {label:'CO₂',        unit:'ppm',   val:data.co2,  hist:data.co2H,  color:'#5a8f3c', min:300, max:1300, thresh:1000, tl:'1000 ppm'},
+    {label:'PM2.5',      unit:'µg/m³', val:data.pm25, hist:data.pm25H, color:'#7c6bb0', min:0,   max:100,  thresh:55,   tl:'55 µg/m³'},
+    {label:'Temperature',unit:'°C',    val:data.temp, hist:data.tempH, color:'#b07030', min:10,  max:40,   thresh:28,   tl:'28°C'},
+    {label:'Humidity',   unit:'%RH',   val:data.hum,  hist:data.humH,  color:'#3a7a9a', min:10,  max:90,   thresh:70,   tl:'70%'},
+  ];
+
+  const charts  = allCharts.filter(c=>activeCharts.includes(c.label));
+  const sliced  = charts.map(ch=>({...ch, hist:ch.hist.slice(-range)}));
+  const rangeSec = range >= HIST ? 'all data' : `~${range*5}s`;
+
+  const toggleChart = (label) => {
+    setActiveCharts(prev=>prev.includes(label)?(prev.length>1?prev.filter(l=>l!==label):prev):[...prev,label]);
+  };
+
+  return (
+    <div className="panel-scroll slide-in" style={{flex:1,padding:'20px 24px',display:'flex',gap:18,alignItems:'flex-start',width:'100%',minHeight:0,overflowY:'auto',overflowX:'hidden'}}>
+
+      {/* Left: Monthly heatmap */}
+      <div style={{width:220,flexShrink:0,display:'flex',flexDirection:'column',gap:16,paddingTop:4}}>
+        <MonthHeatmap monthData={monthData}/>
+      </div>
+
+      {/* Center: Live charts */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',gap:14,minWidth:0}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+          <div>
+            <div style={{fontFamily:"'Instrument Serif',serif",fontSize:20,color:C.text,fontWeight:300}}>Sensor History</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em',marginTop:2}}>Last {rangeSec} · 5s cadence</div>
+          </div>
+          <div style={{display:'flex',gap:4,background:C.surfaceAlt,border:`1px solid ${C.border}`,borderRadius:12,padding:3}}>
+            {RANGE_OPTIONS.map(opt=>{
+              const active=range===opt.points;
+              return (
+                <button key={opt.label} onClick={()=>setRange(opt.points)} style={{
+                  padding:'4px 12px',border:'none',cursor:'pointer',borderRadius:8,
+                  background:active?C.surface:'transparent',color:active?C.text:C.muted,
+                  fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.08em',
+                  boxShadow:active?C.shadow:'none',transition:'all 0.15s',fontWeight:active?500:400,
+                }}>{opt.label}</button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{display:'flex',gap:6,flexShrink:0,flexWrap:'wrap'}}>
+          {allCharts.map(ch=>{
+            const on=activeCharts.includes(ch.label);
+            return (
+              <button key={ch.label} onClick={()=>toggleChart(ch.label)} style={{
+                display:'flex',alignItems:'center',gap:5,padding:'4px 10px',
+                border:`1.5px solid ${on?ch.color:C.border}`,borderRadius:99,
+                background:on?ch.color+'12':'transparent',cursor:'pointer',transition:'all 0.15s',
+              }}>
+                <div style={{width:6,height:6,borderRadius:'50%',background:on?ch.color:C.muted}}/>
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:on?ch.color:C.muted,letterSpacing:'0.08em'}}>{ch.label.toUpperCase()}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {sliced.map(ch=>{
+          const dv=typeof ch.val==='number'&&ch.val%1!==0?ch.val.toFixed(1):ch.val;
+          const valid=ch.hist.filter(v=>v>0);
+          const hMin=valid.length?Math.min(...valid):'—', hMax=valid.length?Math.max(...valid):'—';
+          const avg=valid.length?(valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1):'—';
+          return (
+            <div key={ch.label} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:18,padding:'14px 18px',boxShadow:C.shadow,display:'flex',flexDirection:'column',gap:6,height:152}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:7}}>
+                  <div style={{width:7,height:7,borderRadius:'50%',background:ch.color}}/>
+                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.12em',textTransform:'uppercase'}}>{ch.label}</span>
+                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>{ch.unit}</span>
+                </div>
+                <div style={{display:'flex',gap:16}}>
+                  {[{l:'NOW',v:`${dv||'—'} ${ch.unit}`},{l:'MIN',v:hMin},{l:'MAX',v:hMax},{l:'AVG',v:avg}].map(s=>(
+                    <div key={s.l} style={{textAlign:'right'}}>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,letterSpacing:'0.1em'}}>{s.l}</div>
+                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:s.l==='NOW'?ch.color:C.textMid}}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{flex:1,minHeight:0}}>
+                <AutoChart data={ch.hist} color={ch.color} min={ch.min} max={ch.max} thresh={ch.thresh} thLabel={ch.tl}/>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>−{rangeSec}</span>
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>now</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Right: Hourly trends */}
+      <div style={{width:210,flexShrink:0,display:'flex',flexDirection:'column',gap:16,paddingTop:4}}>
+        <HourlyTrends hourlyData={hourlyData}/>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ThresholdSlider({value, onChange, min, max, step, color, unit}) {
+  const pct=((value-min)/(max-min))*100;
+  return (
+    <div style={{position:'relative',paddingTop:28,marginBottom:4}}>
+      <div style={{
+        position:'absolute',top:0,left:`calc(${Math.min(94,Math.max(3,pct))}% - 22px)`,
+        transition:'left 0.1s ease',background:color,color:'#fff',
+        fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:500,
+        padding:'2px 8px',borderRadius:6,whiteSpace:'nowrap',letterSpacing:'0.04em',
+        boxShadow:'0 2px 6px rgba(0,0,0,0.15)',pointerEvents:'none',
+      }}>
+        {value}<span style={{fontSize:8,opacity:0.8,marginLeft:2}}>{unit}</span>
+        <div style={{position:'absolute',bottom:-5,left:'50%',transform:'translateX(-50%)',width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',borderTop:`5px solid ${color}`}}/>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        style={{width:'100%',accentColor:color,background:`linear-gradient(90deg,${color} ${pct}%,rgba(80,60,30,0.15) ${pct}%)`}}
+        onChange={e=>onChange(+e.target.value)}
+      />
+    </div>
+  );
+}
+
+function Controls({data, co2T, pm25T, setCo2T, setPm25T, deviceState}) {
+  const [co2Draft,   setCo2Draft]   = useState(co2T);
+  const [pm25Draft,  setPm25Draft]  = useState(pm25T);
+  const [led,        setLed]        = useState('auto');
+  const [buzzer,     setBuzzer]     = useState(deviceState?.buzzer === 1);
+  const [log,        setLog]        = useState([{t:new Date().toLocaleTimeString(),msg:'Ready — listening for commands'}]);
+  const [co2Applied, setCo2Applied] = useState(false);
+  const [pm25Applied,setPm25Applied]= useState(false);
+
+  // Sync drafts and buzzer from parent state changes
+  useEffect(()=>setCo2Draft(co2T),  [co2T]);
+  useEffect(()=>setPm25Draft(pm25T),[pm25T]);
+  useEffect(()=>setBuzzer(deviceState?.buzzer===1),[deviceState?.buzzer]);
+
+  // Poll command log from API
+  useEffect(()=>{
+    const poll=async()=>{
+      try {
+        const s=await apiFetch('/api/status');
+        if(s.log && s.log.length) setLog(s.log.map(e=>({t:e.ts,msg:e.msg})));
+      } catch(e){}
+    };
+    poll();
+    const t=setInterval(poll,5000);
+    return()=>clearInterval(t);
+  },[]);
+
+  const push = msg=>setLog(p=>[{t:new Date().toLocaleTimeString(),msg},...p.slice(0,19)]);
+
+  const applyCo2=async()=>{
+    setCo2T(co2Draft);
+    await apiPost('/api/control',{co2_threshold:co2Draft}).catch(()=>{});
+    push(`CO₂ threshold applied → ${co2Draft} ppm`);
+    setCo2Applied(true);
+    setTimeout(()=>setCo2Applied(false),2000);
+  };
+  const applyPm25=async()=>{
+    setPm25T(pm25Draft);
+    await apiPost('/api/control',{pm25_threshold:pm25Draft}).catch(()=>{});
+    push(`PM2.5 threshold applied → ${pm25Draft} µg/m³`);
+    setPm25Applied(true);
+    setTimeout(()=>setPm25Applied(false),2000);
+  };
+
+  const setLedMode=async(opt)=>{
+    setLed(opt);
+    push(`LED override → ${opt.toUpperCase()}`);
+    if(opt==='on')  await apiPost('/api/control',{led:1}).catch(()=>{});
+    if(opt==='off') await apiPost('/api/control',{led:0}).catch(()=>{});
+    // 'auto' = no command (let firmware handle it)
+  };
+  const toggleBuzzer=async()=>{
+    const next=!buzzer;
+    setBuzzer(next);
+    await apiPost('/api/control',{buzzer:next?1:0}).catch(()=>{});
+    push(`Buzzer → ${next?'FORCED ON':'returned to auto'}`);
+  };
+
+  const level=getLevel(data.co2,data.pm25);
+  const ledActive=led==='on'||(led==='auto'&&level==='danger');
+  const co2Changed=co2Draft!==co2T, pm25Changed=pm25Draft!==pm25T;
+
+  return (
+    <div className="panel-scroll slide-in" style={{flex:1,padding:'28px 32px',maxWidth:800,margin:'0 auto',width:'100%'}}>
+      <div style={{marginBottom:24}}>
+        <div style={{fontFamily:"'Instrument Serif',serif",fontSize:22,color:C.text,fontWeight:300,marginBottom:4}}>Device Controls</div>
+        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,letterSpacing:'0.1em'}}>Commands sent to ESP32 via backend GET endpoint</div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+
+        {/* LED Override */}
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
+            <div style={{width:28,height:28,borderRadius:'50%',background:ledActive?'#c02828':'rgba(80,60,30,0.1)',boxShadow:ledActive?'0 0 12px #c0282860':'none',transition:'all 0.4s ease',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <div style={{width:10,height:10,borderRadius:'50%',background:ledActive?'#ff8080':'rgba(80,60,30,0.3)'}}/>
+            </div>
+            <div>
+              <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500}}>Red LED</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em',marginTop:1}}>GPIO 23 · OVERRIDE</div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            {['auto','on','off'].map(opt=>{
+              const active=led===opt;
+              return (
+                <button key={opt} onClick={()=>setLedMode(opt)} style={{
+                  flex:1,padding:'8px 0',border:`1.5px solid ${active?C.text:C.border}`,
+                  borderRadius:10,background:active?C.text:'transparent',
+                  color:active?C.bg:C.muted,cursor:'pointer',
+                  fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.08em',transition:'all 0.15s',
+                }}>{opt.toUpperCase()}</button>
+              );
+            })}
+          </div>
+          <div style={{marginTop:12,fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
+            Status: <span style={{color:ledActive?'#c02828':C.textMid}}>{ledActive?'ON':'OFF'}</span>
+            {led==='auto'&&<span style={{color:C.muted}}> (auto)</span>}
+          </div>
+        </div>
+
+        {/* Buzzer */}
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
+            <div style={{width:28,height:28,borderRadius:8,background:buzzer?'#c02828':'rgba(80,60,30,0.1)',transition:'all 0.4s ease',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M11 5L6 9H2v6h4l5 4V5z" stroke={buzzer?'#fff':'rgba(80,60,30,0.4)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke={buzzer?'#fff':'rgba(80,60,30,0.4)'} strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500}}>Buzzer</div>
+              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em',marginTop:1}}>GPIO 15 · 1000 Hz</div>
+            </div>
+          </div>
+          <button onClick={toggleBuzzer} style={{
+            width:'100%',padding:'10px 0',
+            border:`1.5px solid ${buzzer?'#c02828':C.border}`,
+            borderRadius:10,background:buzzer?'#c02828':'transparent',
+            color:buzzer?'#fff':C.muted,cursor:'pointer',
+            fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:'0.08em',transition:'all 0.2s',
+          }}>{buzzer?'◼  ACTIVE — click to silence':'▶  Force constant tone'}</button>
+          <div style={{marginTop:12,fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
+            Mode: <span style={{color:buzzer?'#c02828':C.textMid}}>{buzzer?'Forced on':'Auto (state machine)'}</span>
+          </div>
+        </div>
+
+        {/* CO2 Threshold */}
+        <div style={{background:C.surface,border:`1px solid ${co2Changed?'#5a8f3c44':C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow,transition:'border-color 0.2s'}}>
+          <div style={{marginBottom:14}}>
+            <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500,marginBottom:2}}>CO₂ Alarm Threshold</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em'}}>Triggers RED LED + buzzer</div>
+          </div>
+          <ThresholdSlider value={co2Draft} onChange={setCo2Draft} min={600} max={1200} step={50} color="#5a8f3c" unit="ppm"/>
+          <div style={{display:'flex',justifyContent:'space-between',marginTop:4,marginBottom:12}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>600 ppm</span>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>1200 ppm</span>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
+              Active: <span style={{color:C.textMid}}>{co2T} ppm</span>
+              {co2Changed&&<span style={{color:'#5a8f3c',marginLeft:6}}>→ {co2Draft} ppm</span>}
+            </span>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <div style={{flex:1,padding:'7px 12px',borderRadius:10,background:data.co2>=co2T?'rgba(192,40,40,0.08)':'rgba(74,158,74,0.07)',border:'1px solid '+(data.co2>=co2T?'rgba(192,40,40,0.2)':'rgba(74,158,74,0.15)'),fontFamily:"'DM Mono',monospace",fontSize:9,color:data.co2>=co2T?'#c02828':'#4a9e4a'}}>
+              {data.co2||'—'} ppm — {data.co2>0?(data.co2>=co2T?'⚠ ALARM':'✓ OK'):'waiting'}
+            </div>
+            <button onClick={applyCo2} style={{
+              padding:'7px 16px',borderRadius:10,border:'none',cursor:'pointer',
+              fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.06em',
+              background:co2Applied?'#4a9e4a':co2Changed?'#5a8f3c':'rgba(80,60,30,0.08)',
+              color:co2Changed||co2Applied?'#fff':C.muted,transition:'all 0.2s',flexShrink:0,
+            }}>{co2Applied?'✓ Applied':'Apply'}</button>
+          </div>
+        </div>
+
+        {/* PM2.5 Threshold */}
+        <div style={{background:C.surface,border:`1px solid ${pm25Changed?'#7c6bb044':C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow,transition:'border-color 0.2s'}}>
+          <div style={{marginBottom:14}}>
+            <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500,marginBottom:2}}>PM2.5 Alarm Threshold</div>
+            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em'}}>Triggers RED LED + buzzer</div>
+          </div>
+          <ThresholdSlider value={pm25Draft} onChange={setPm25Draft} min={12} max={100} step={1} color="#7c6bb0" unit="µg/m³"/>
+          <div style={{display:'flex',justifyContent:'space-between',marginTop:4,marginBottom:12}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>12 µg/m³</span>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>100 µg/m³</span>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
+              Active: <span style={{color:C.textMid}}>{pm25T} µg/m³</span>
+              {pm25Changed&&<span style={{color:'#7c6bb0',marginLeft:6}}>→ {pm25Draft} µg/m³</span>}
+            </span>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <div style={{flex:1,padding:'7px 12px',borderRadius:10,background:data.pm25>=pm25T?'rgba(192,40,40,0.08)':'rgba(74,158,74,0.07)',border:'1px solid '+(data.pm25>=pm25T?'rgba(192,40,40,0.2)':'rgba(74,158,74,0.15)'),fontFamily:"'DM Mono',monospace",fontSize:9,color:data.pm25>=pm25T?'#c02828':'#4a9e4a'}}>
+              {data.pm25||'—'} µg/m³ — {data.pm25>0?(data.pm25>=pm25T?'⚠ ALARM':'✓ OK'):'waiting'}
+            </div>
+            <button onClick={applyPm25} style={{
+              padding:'7px 16px',borderRadius:10,border:'none',cursor:'pointer',
+              fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.06em',
+              background:pm25Applied?'#4a9e4a':pm25Changed?'#7c6bb0':'rgba(80,60,30,0.08)',
+              color:pm25Changed||pm25Applied?'#fff':C.muted,transition:'all 0.2s',flexShrink:0,
+            }}>{pm25Applied?'✓ Applied':'Apply'}</button>
+          </div>
+        </div>
+
+        {/* Device Status */}
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow}}>
+          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500,marginBottom:16}}>Device Status</div>
+          {[
+            {k:'CO₂ sensor',   v:'SCD40 · I2C 0x62'},
+            {k:'Dust sensor',  v:'PMS5003T · UART'},
+            {k:'Display',      v:'SSD1306 OLED 128×64'},
+            {k:'LEDs',         v:'G:18 · Y:19 · R:23'},
+            {k:'Buzzer',       v:'GPIO 15 · passive'},
+            {k:'POST cadence', v:'every 5s'},
+            {k:'GET cadence',  v:'every 2s'},
+          ].map(({k,v})=>(
+            <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${C.border}`}}>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.08em'}}>{k}</span>
+              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.textMid}}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Command Log */}
+        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow,display:'flex',flexDirection:'column'}}>
+          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500,marginBottom:16}}>Command Log</div>
+          <div style={{flex:1,display:'flex',flexDirection:'column',gap:6,overflowY:'auto',maxHeight:240}}>
+            {log.map((e,i)=>(
+              <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,flexShrink:0,marginTop:1}}>{e.t}</span>
+                <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:i===0?C.text:C.muted,lineHeight:1.4}}>{e.msg}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROOT APP
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Build a month of day objects for the calendar; merge real daily data
+function buildMonthData(dailyApi) {
+  const now   = new Date();
+  const days  = [];
+  for (let i = 41; i >= 0; i--) {
+    const d   = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const real = dailyApi[key];
+    days.push({ date: d, score: real ? real.score : null, future: d > now });
+  }
+  return days;
+}
+
+// Build 24-slot hourly array from full history
+function buildHourlyData(history) {
+  const buckets = Array.from({length:24}, (_,h)=>({hour:h, co2:null, pm25:null, temp:null, hum:null, _co2:[],_pm25:[],_temp:[],_hum:[]}));
+  history.forEach(r => {
+    const h = new Date(r.ts).getHours();
+    if (r.co2  > 0) buckets[h]._co2.push(r.co2);
+    if (r.pm25 > 0) buckets[h]._pm25.push(r.pm25);
+    if (r.temp > 0) buckets[h]._temp.push(r.temp);
+    if (r.hum  > 0) buckets[h]._hum.push(r.hum);
+  });
+  return buckets.map(b=>{
+    const avg = arr => arr.length ? +(arr.reduce((a,c)=>a+c,0)/arr.length).toFixed(1) : null;
+    return { hour:b.hour, co2:avg(b._co2), pm25:avg(b._pm25), temp:avg(b._temp), hum:avg(b._hum) };
   });
 }
-function initSparklines() {
-  C.spCo2  = mkSpark('sp-co2',  'rgba(255,255,255,.75)');
-  C.spPm25 = mkSpark('sp-pm25', 'rgba(255,255,255,.75)');
-  C.spTemp = mkSpark('sp-temp', '#c8853a');
-  C.spHum  = mkSpark('sp-hum',  '#4a7abf');
-}
-function spark(ch, data) {
-  ch.data.labels = data.map((_,i) => i);
-  ch.data.datasets[0].data = data;
-  ch.update('none');
+
+// Default hourly pattern (shown before enough data accumulates)
+function defaultHourlyData() {
+  const co2P  = [420,410,405,400,408,430,520,640,680,660,640,620,600,590,610,640,700,720,680,620,560,510,470,440];
+  const pm25P = [8,7,6,6,7,9,14,18,20,17,15,14,13,12,14,16,19,21,18,15,12,11,10,9];
+  return Array.from({length:24},(_,h)=>({
+    hour:h,
+    co2:  Math.round(co2P[h]+(Math.random()-.5)*40),
+    pm25: +(pm25P[h]+(Math.random()-.5)*4).toFixed(1),
+    temp: +(18+Math.sin((h-6)/24*Math.PI*2)*4+(Math.random()-.5)*1).toFixed(1),
+    hum:  Math.round(55-Math.sin((h-6)/24*Math.PI*2)*10+(Math.random()-.5)*5),
+  }));
 }
 
-// ── History charts ────────────────────────────────────────────────────────────
-function mkHistChart(id, color, bg) {
-  return new Chart(document.getElementById(id), {
-    type: 'line',
-    data: { labels: [], datasets: [{ data: [], borderColor: color, backgroundColor: bg, borderWidth: 1.5, pointRadius: 0, tension: .3, fill: true }] },
-    options: {
-      responsive: true, animation: false,
-      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { title: i => i[0].label } } },
-      scales: {
-        x: { ticks: { color:'#aaa', maxTicksLimit:8, font:{size:9} }, grid: { color:'#f0ebe0' } },
-        y: { ticks: { color:'#aaa', font:{size:9} },                  grid: { color:'#f0ebe0' } }
+function App() {
+  const data  = useSensor();
+  const [tab, setTab] = useState('overview');
+  const level = getLevel(data.co2, data.pm25);
+
+  const [co2T,        setCo2T]        = useState(1000);
+  const [pm25T,       setPm25T]       = useState(55);
+  const [deviceState, setDeviceState] = useState({ co2_threshold:1000, pm25_threshold:55, buzzer:0 });
+  const [score,       setScore]       = useState(null);
+  const [scoreLabel,  setScoreLabel]  = useState(null);
+
+  const [monthData,   setMonthData]   = useState([]);
+  const [hourlyData,  setHourlyData]  = useState(defaultHourlyData());
+
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const prevAlarm = useRef(false);
+  const alarmActive = data.co2 >= co2T || data.pm25 >= pm25T;
+
+  useEffect(()=>{
+    if(prevAlarm.current && !alarmActive) setBannerDismissed(false);
+    if(!prevAlarm.current && alarmActive) setBannerDismissed(false);
+    prevAlarm.current = alarmActive;
+  },[alarmActive]);
+
+  // Initial device state fetch
+  useEffect(()=>{
+    apiFetch('/api/status').then(s=>{
+      if(s.state){
+        setCo2T(s.state.co2_threshold);
+        setPm25T(s.state.pm25_threshold);
+        setDeviceState(s.state);
       }
-    }
-  });
-}
-function initHistCharts() {
-  C.hCo2  = mkHistChart('hc-co2',  '#5a7e5a', 'rgba(90,126,90,.08)');
-  C.hPm25 = mkHistChart('hc-pm25', '#7a6ea8', 'rgba(122,110,168,.08)');
-  C.hTemp = mkHistChart('hc-temp', '#c8853a', 'rgba(200,133,58,.08)');
-  C.hHum  = mkHistChart('hc-hum',  '#4a7abf', 'rgba(74,122,191,.08)');
-}
+      if(s.score != null) { setScore(s.score); setScoreLabel(s.label); }
+    }).catch(()=>{});
+  },[]);
 
-function filteredHist() {
-  const now = Date.now();
-  const cut = { '30s': now-30000, '1m': now-60000, '2m': now-120000, 'all': 0 }[filter] ?? 0;
-  return hist.filter(r => r.ts >= cut);
-}
+  // Poll score + device state every 5s
+  useEffect(()=>{
+    const poll=async()=>{
+      try {
+        const s=await apiFetch('/api/status');
+        if(s.state){ setDeviceState(s.state); setCo2T(s.state.co2_threshold); setPm25T(s.state.pm25_threshold); }
+        if(s.score!=null){ setScore(s.score); setScoreLabel(s.label); }
+      } catch(e){}
+    };
+    const t=setInterval(poll,5000);
+    return()=>clearInterval(t);
+  },[]);
 
-function renderHistCharts() {
-  const data = filteredHist();
-  if (!data.length) return;
-  const labels = data.map(r => fmtT(r.ts));
-  setHC(C.hCo2,  labels, data.map(r=>r.co2),  'hs-co2',  0);
-  setHC(C.hPm25, labels, data.map(r=>r.pm25), 'hs-pm25', 1);
-  setHC(C.hTemp, labels, data.map(r=>r.temp), 'hs-temp', 1);
-  setHC(C.hHum,  labels, data.map(r=>r.hum),  'hs-hum',  1);
-  document.getElementById('hist-sub').textContent = `Last ${data.length} readings · 5s cadence`;
-}
+  // Fetch daily data for calendar (every 60s)
+  useEffect(()=>{
+    const fetch=async()=>{
+      try {
+        const daily=await apiFetch('/api/daily');
+        setMonthData(buildMonthData(daily));
+      } catch(e){ setMonthData(buildMonthData({})); }
+    };
+    fetch();
+    const t=setInterval(fetch,60000);
+    return()=>clearInterval(t);
+  },[]);
 
-function setHC(ch, labels, vals, pre, dec) {
-  ch.data.labels = labels;
-  ch.data.datasets[0].data = vals;
-  ch.update('none');
-  const v = vals.filter(x => x > 0);
-  if (!v.length) return;
-  const last = vals[vals.length-1], mn = Math.min(...v), mx = Math.max(...v), avg = v.reduce((a,b)=>a+b,0)/v.length;
-  $(pre+'-now', f(last,dec)); $(pre+'-min', f(mn,dec)); $(pre+'-max', f(mx,dec)); $(pre+'-avg', f(avg,dec));
-}
+  // Recompute hourly trends whenever sensor data updates
+  useEffect(()=>{
+    apiFetch('/api/history').then(h=>{
+      const hist=h.history||[];
+      if(hist.length>5) setHourlyData(buildHourlyData(hist));
+    }).catch(()=>{});
+  },[data.ts]);
 
-function setFilter(btn, f) {
-  filter = f;
-  document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderHistCharts();
-}
-
-// ── Time of Day ───────────────────────────────────────────────────────────────
-function initTodChart() {
-  C.tod = new Chart(document.getElementById('tod-chart'), {
-    type: 'bar',
-    data: {
-      labels: Array.from({length:24},(_,i) => i%6===0?`${i}:00`:''),
-      datasets:[{data:Array(24).fill(null), backgroundColor:'rgba(90,126,90,.5)', borderRadius:3, borderWidth:0}]
-    },
-    options: {
-      responsive:true, animation:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>`${i[0].dataIndex}:00`,label:i=>i.raw?`avg CO₂: ${Math.round(i.raw)} ppm`:'no data'}}},
-      scales:{x:{ticks:{color:'#aaa',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#aaa',font:{size:9}},grid:{color:'#f0ebe0'}}}
-    }
-  });
+  return (
+    <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',background:C.bg,overflow:'hidden'}}>
+      <NavBar tab={tab} setTab={setTab} level={level}/>
+      <AlarmBanner data={data} co2T={co2T} pm25T={pm25T} dismissed={bannerDismissed} onDismiss={()=>setBannerDismissed(true)}/>
+      <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+        {tab==='overview' && <Overview data={data} score={score} scoreLabel={scoreLabel}/>}
+        {tab==='history'  && <div style={{flex:1,overflow:'hidden',display:'flex'}}><History data={data} monthData={monthData} hourlyData={hourlyData}/></div>}
+        {tab==='controls' && <Controls data={data} co2T={co2T} pm25T={pm25T} setCo2T={setCo2T} setPm25T={setPm25T} deviceState={deviceState}/>}
+      </div>
+    </div>
+  );
 }
 
-function renderTod() {
-  const buckets = Array.from({length:24},()=>[]);
-  hist.forEach(r => { if(r.co2>0) buckets[new Date(r.ts).getHours()].push(r.co2); });
-  const avgs = buckets.map(b => b.length ? b.reduce((a,c)=>a+c,0)/b.length : null);
-  C.tod.data.datasets[0].data = avgs;
-  C.tod.update('none');
-  const peak = avgs.reduce((best,v,i)=>v&&v>(avgs[best]??-1)?i:best,0);
-  if (avgs[peak]) document.getElementById('tod-sub').textContent = `Peak: ${peak}:00 · ${Math.round(avgs[peak])} ppm`;
-}
-
-// ── Calendar ──────────────────────────────────────────────────────────────────
-function buildCal() {
-  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
-  const grid = document.getElementById('cal-grid');
-  ['S','M','T','W','T','F','S'].forEach(h => { const d=document.createElement('div'); d.className='cal-hdr'; d.textContent=h; grid.appendChild(d); });
-  const first = new Date(y,m,1).getDay(), days = new Date(y,m+1,0).getDate();
-  for(let i=0;i<first;i++){ const d=document.createElement('div'); d.className='cal-day empty'; grid.appendChild(d); }
-  for(let d=1;d<=days;d++){
-    const el=document.createElement('div'); el.className='cal-day'; el.textContent=d;
-    const key=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    el.dataset.date=key; el.onclick=()=>selectDay(key,el);
-    grid.appendChild(el);
-  }
-}
-
-function renderCal() {
-  document.querySelectorAll('.cal-day[data-date]').forEach(el => {
-    const d = daily[el.dataset.date];
-    el.className = 'cal-day' + (el.dataset.date===selDay?' sel':'');
-    if(d) el.classList.add(d.label==='Good'?'good':d.label==='Alarm'?'alarm':'mod');
-  });
-}
-
-function selectDay(key, el) {
-  if(selDay===key){closePopup();return;}
-  selDay=key;
-  document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('sel'));
-  el.classList.add('sel');
-  const d=daily[key];
-  if(!d){closePopup();return;}
-  document.getElementById('dp-title').textContent = key;
-  document.getElementById('dp-stats').innerHTML =
-    `<span>CO₂ avg</span><span>${d.avg_co2} ppm</span><span>PM2.5</span><span>${d.avg_pm25} μg/m³</span><span>Temp</span><span>${d.avg_temp} °C</span><span>Readings</span><span>${d.count}</span>`;
-  document.getElementById('day-popup').classList.add('show');
-}
-function closePopup(){ selDay=null; document.getElementById('day-popup').classList.remove('show'); document.querySelectorAll('.cal-day').forEach(d=>d.classList.remove('sel')); }
-
-// ── Controls ──────────────────────────────────────────────────────────────────
-function renderCtrlState(s, log) {
-  if(!s) return;
-  state = s;
-  document.getElementById('co2-sld').value  = s.co2_threshold;
-  document.getElementById('pm25-sld').value = s.pm25_threshold;
-  document.getElementById('co2-act').textContent  = s.co2_threshold + ' ppm';
-  document.getElementById('pm25-act').textContent = s.pm25_threshold + ' μg/m³';
-  moveBub('co2'); moveBub('pm25');
-
-  if(latest && latest.co2>0){
-    setBadge('co2-rbadge',  latest.co2,        s.co2_threshold,  ' ppm');
-    setBadge('pm25-rbadge', latest.pm25.toFixed(1), s.pm25_threshold, ' μg/m³');
-  }
-
-  const buzOn = !!s.buzzer;
-  const btn=document.getElementById('buz-btn');
-  btn.className='btn-full'+(buzOn?' on':'');
-  btn.textContent = buzOn ? '⏹ Stop tone' : '▶ Force constant tone';
-  document.getElementById('buz-status').textContent = buzOn ? 'Mode: Forced ON' : 'Mode: Auto (state machine)';
-
-  if(log && log.length){
-    document.getElementById('cmd-log').innerHTML = log.map(e=>
-      `<div class="log-entry"><span class="log-ts">${e.ts}</span><span>${e.msg}</span></div>`).join('');
-  }
-}
-
-function setBadge(id, val, thr, unit) {
-  const alarm = parseFloat(val) >= thr;
-  const el = document.getElementById(id);
-  el.textContent = val + unit + ' · ' + (alarm ? 'ALARM' : 'OK');
-  el.className = 'rbadge ' + (alarm ? 'alarm' : 'ok');
-}
-
-function moveBub(which) {
-  const sld = document.getElementById(which+'-sld');
-  const bub = document.getElementById(which+'-bub');
-  const mn = +sld.min, mx = +sld.max, val = +sld.value;
-  const pct = (val-mn)/(mx-mn);
-  const tw = sld.offsetWidth || 200;
-  bub.style.left = (pct*(tw-15)+7.5) + 'px';
-  bub.textContent = val + (which==='co2' ? ' ppm' : ' μg/m³');
-}
-
-function applyThr(which) {
-  const val = +document.getElementById(which+'-sld').value;
-  sendCtrl({ [which==='co2'?'co2_threshold':'pm25_threshold']: val });
-}
-
-function setLed(mode, btn) {
-  document.querySelectorAll('.seg').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  if(mode==='auto'){ document.getElementById('led-status').textContent='Status: OFF (auto)'; return; }
-  sendCtrl({led: mode==='on'?1:0});
-  document.getElementById('led-status').textContent = `Status: ${mode.toUpperCase()} (one-shot sent)`;
-  setTimeout(()=>{ document.getElementById('led-auto').classList.add('active'); btn.classList.remove('active'); document.getElementById('led-status').textContent='Status: OFF (auto)'; }, 3000);
-}
-
-function toggleBuzzer() {
-  sendCtrl({ buzzer: state.buzzer ? 0 : 1 });
-}
-
-async function sendCtrl(payload) {
-  try {
-    const r = await fetch('/api/control',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const d = await r.json();
-    renderCtrlState(d.state, null);
-    fetch('/api/status').then(r=>r.json()).then(d=>{ if(d.log) renderCtrlState(d.state,d.log); });
-  } catch {}
-}
-
-// ── Utils ─────────────────────────────────────────────────────────────────────
-function $(id,v){ document.getElementById(id).textContent=v; }
-function f(v,dec){ return v==null?'—':dec?Number(v).toFixed(dec):Math.round(v); }
-function fmtT(ts){ return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
