@@ -314,7 +314,7 @@ function NavBar({tab, setTab, level}) {
           <span style={{fontFamily:"'Instrument Serif',serif",fontSize:18,color:C.text,fontWeight:400,letterSpacing:'-0.01em'}}>Air Quality</span>
           <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.12em',marginTop:2}}>ESP32</span>
         </div>
-        <ConnectionBadge status={connStatus}/>
+        {mobile && <ConnectionBadge status={connStatus}/>}
       </div>
 
       <nav style={{display:'flex',gap:2,flex:1,position:'relative',zIndex:1,marginLeft:mobile?0:24,marginTop:mobile?6:0}}>
