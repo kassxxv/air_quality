@@ -1,0 +1,23 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+body { font-family: 'Space Grotesk', sans-serif; background: #f7f3ed; }
+
+.panel-scroll { overflow-y: auto; overflow-x: hidden; }
+.panel-scroll::-webkit-scrollbar { width: 4px; }
+.panel-scroll::-webkit-scrollbar-track { background: transparent; }
+.panel-scroll::-webkit-scrollbar-thumb { background: rgba(100,80,50,0.15); border-radius: 99px; }
+
+input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 99px; outline: none; cursor: pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 2px solid #f7f3ed; box-shadow: 0 1px 4px rgba(0,0,0,0.2); background: currentColor; }
+input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; border: 2px solid #f7f3ed; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+
+@keyframes pulse-ring { 0%{transform:scale(0.92);opacity:0.7} 50%{transform:scale(1.08);opacity:0.3} 100%{transform:scale(0.92);opacity:0.7} }
+@keyframes slide-in-up { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fade-in { from{opacity:0} to{opacity:1} }
+@keyframes banner-in { from{opacity:0;transform:translateY(-100%)} to{opacity:1;transform:translateY(0)} }
+@keyframes banner-out { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-100%)} }
+@keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.slide-in { animation: slide-in-up 0.35s cubic-bezier(.2,.8,.3,1) both; }
+.fade-in  { animation: fade-in 0.25s ease both; }
+.banner-in  { animation: banner-in  0.3s cubic-bezier(.2,.8,.3,1) both; }
+.banner-out { animation: banner-out 0.25s ease both; }
