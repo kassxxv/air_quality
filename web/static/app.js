@@ -315,7 +315,7 @@ function Overview({data, score, scoreLabel}) {
   const scoreColor = {good:'#4a9e4a',warning:'#c9941a',danger:'#c02828'}[level];
 
   return (
-    <div className="panel-scroll slide-in" style={{flex:1,padding:'32px 48px',display:'flex',flexDirection:'column',gap:22,width:'100%'}}>
+    <div className="panel-scroll slide-in" style={{flex:1,padding:'28px 40px',display:'flex',flexDirection:'column',gap:22,maxWidth:1050,margin:'0 auto',width:'100%'}}>
 
       {/* Hero card */}
       <div style={{
@@ -562,14 +562,12 @@ function MonthHeatmap({monthData}) {
         ))}
       </div>
       {tooltip && !selected && (
-        <div style={{
-          position:'absolute',bottom:'100%',left:'50%',transform:'translateX(-50%)',
-          marginBottom:8,background:C.text,color:'#fff',
+        <div className="fade-in" style={{
+          marginTop:10,background:C.text,color:'#fff',
           fontFamily:"'DM Mono',monospace",fontSize:9,padding:'6px 10px',borderRadius:8,
-          pointerEvents:'none',whiteSpace:'nowrap',zIndex:10,boxShadow:'0 4px 12px rgba(0,0,0,0.2)',
+          textAlign:'center',letterSpacing:'0.06em',
         }}>
           {tooltip.date.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'})} · Score {tooltip.score ?? 'no data'}
-          <div style={{position:'absolute',top:'100%',left:'50%',transform:'translateX(-50%)',width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',borderTop:`5px solid ${C.text}`}}/>
         </div>
       )}
       <div style={{display:'flex',alignItems:'center',gap:6,marginTop:14}}>
@@ -601,9 +599,9 @@ function HourlyTrends({hourlyData, hasRealData}) {
 
   return (
     <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px 20px',boxShadow:C.shadow,display:'flex',flexDirection:'column',gap:12}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+      <div style={{display:'flex',flexDirection:'column',gap:8}}>
         <div>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:13,color:C.text,fontWeight:500,marginBottom:4}}>Time of Day</div>
+          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:13,color:C.text,fontWeight:500,marginBottom:2}}>Time of Day</div>
           <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.08em'}}>Hourly avg · today</div>
         </div>
         <div style={{display:'flex',gap:3,background:C.surfaceAlt,border:`1px solid ${C.border}`,borderRadius:10,padding:3}}>
@@ -611,7 +609,7 @@ function HourlyTrends({hourlyData, hasRealData}) {
             const act=metric===k;
             return (
               <button key={k} onClick={()=>setMetric(k)} style={{
-                padding:'3px 8px',border:'none',cursor:'pointer',borderRadius:7,
+                flex:1,padding:'4px 0',border:'none',cursor:'pointer',borderRadius:7,outline:'none',
                 background:act?C.surface:'transparent',color:act?v.color:C.muted,
                 fontFamily:"'DM Mono',monospace",fontSize:8,letterSpacing:'0.06em',
                 boxShadow:act?C.shadow:'none',transition:'all 0.15s',
