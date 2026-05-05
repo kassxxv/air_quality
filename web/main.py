@@ -43,19 +43,29 @@ if LOG_FILE.exists():
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-def air_score(co2: float, pm25: float) -> int:
-    c = min(100.0, max(0.0, (co2 - 400) / 16))
-    p = min(100.0, max(0.0, pm25 / 0.75))
-    return round(c * 0.6 + p * 0.4)
+def _lerp(val: float, breakpoints: list[tuple[float, float]]) -> float:
+    for (x0, y0), (x1, y1) in zip(breakpoints, breakpoints[1:]):
+        if val <= x1:
+            return y0 + (val - x0) / (x1 - x0) * (y1 - y0)
+    return 100.0
 
+def _co2_index(co2: float) -> float:
+    return _lerp(co2, [(400, 0), (700, 20), (1000, 50), (1500, 80), (2000, 100)])
+
+def _pm25_index(pm25: float) -> float:
+    return _lerp(pm25, [(0, 0), (12, 25), (35.4, 50), (55.4, 75), (150, 100)])
+
+def air_score(co2: float, pm25: float) -> int:
+    return round(max(_co2_index(co2), _pm25_index(pm25)))
 
 def score_label(score: int) -> str:
     if score <= 25:
         return "Good"
-    if score <= 60:
+    if score <= 50:
         return "Moderate"
+    if score <= 75:
+        return "Poor"
     return "Alarm"
-
 
 def now_ms() -> int:
     return int(time.time() * 1000)

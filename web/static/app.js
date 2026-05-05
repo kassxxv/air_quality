@@ -5,17 +5,17 @@ function useIsMobile(bp = 768) {
   const [mobile, setMobile] = useState(window.innerWidth < bp);
   useEffect(() => {
     const h = () => setMobile(window.innerWidth < bp);
-    window.addEventListener('resize', h);
-    return () => window.removeEventListener('resize', h);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
   }, [bp]);
   return mobile;
 }
 
 // ─── Hash-based tab routing ───────────────────────────────────────────────────
-const VALID_TABS = ['overview','history','controls'];
+const VALID_TABS = ["overview", "history", "controls"];
 function getHashTab() {
-  const h = window.location.hash.replace('#','');
-  return VALID_TABS.includes(h) ? h : 'overview';
+  const h = window.location.hash.replace("#", "");
+  return VALID_TABS.includes(h) ? h : "overview";
 }
 function useHashTab() {
   const [tab, setTab] = useState(getHashTab);
@@ -25,37 +25,79 @@ function useHashTab() {
   }, []);
   useEffect(() => {
     const onHash = () => setTab(getHashTab());
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
   }, []);
   return [tab, navigate];
 }
 
 // ─── Palette ────────────────────────────────────────────────────────────────
 const C = {
-  bg:        '#f7f3ed',
-  surface:   '#ffffff',
-  surfaceAlt:'#faf8f4',
-  border:    'rgba(80,60,30,0.10)',
-  borderMid: 'rgba(80,60,30,0.14)',
-  text:      '#231f18',
-  textMid:   '#5a5040',
-  muted:     '#9a8e7a',
-  shadow:    '0 1px 8px rgba(80,60,30,0.07)',
-  shadowMd:  '0 4px 20px rgba(80,60,30,0.10)',
+  bg: "#f7f3ed",
+  surface: "#ffffff",
+  surfaceAlt: "#faf8f4",
+  border: "rgba(80,60,30,0.10)",
+  borderMid: "rgba(80,60,30,0.14)",
+  text: "#231f18",
+  textMid: "#5a5040",
+  muted: "#9a8e7a",
+  shadow: "0 1px 8px rgba(80,60,30,0.07)",
+  shadowMd: "0 4px 20px rgba(80,60,30,0.10)",
 };
 
 // ─── Level helpers ───────────────────────────────────────────────────────────
 function getLevel(co2, pm25) {
-  if (co2 >= 1000 || pm25 >= 55) return 'danger';
-  if (co2 >= 800  || pm25 >= 35) return 'warning';
-  return 'good';
+  if (co2 >= 1500 || pm25 >= 55) return "alarm";
+  if (co2 >= 1000 || pm25 >= 35) return "poor";
+  if (co2 >= 700 || pm25 >= 12) return "warning";
+  return "good";
 }
 const HERO = {
-  good:    { from:'#2d6a2d', to:'#4a9e4a', b1:'#3d8b3d', b2:'#52c052', b3:'#70d070', label:'Clean Air',  pill:'Good' },
-  warning: { from:'#7a5000', to:'#c9941a', b1:'#b8860b', b2:'#d4a017', b3:'#e8c040', label:'Moderate',   pill:'Moderate' },
-  danger:  { from:'#6a1010', to:'#c02828', b1:'#8b1a1a', b2:'#b52020', b3:'#d84040', label:'Poor Air',   pill:'Poor' },
-  offline: { from:'#3a3530', to:'#5a5248', b1:'#4a4540', b2:'#6a6258', b3:'#7a7268', label:'No Data',    pill:'Offline' },
+  good: {
+    from: "#2d6a2d",
+    to: "#4a9e4a",
+    b1: "#3d8b3d",
+    b2: "#52c052",
+    b3: "#70d070",
+    label: "Clean Air",
+    pill: "Good",
+  },
+  warning: {
+    from: "#7a5000",
+    to: "#c9941a",
+    b1: "#b8860b",
+    b2: "#d4a017",
+    b3: "#e8c040",
+    label: "Moderate",
+    pill: "Moderate",
+  },
+  poor: {
+    from: "#7a3500",
+    to: "#c96a1a",
+    b1: "#a04510",
+    b2: "#d07020",
+    b3: "#e09040",
+    label: "Poor Air",
+    pill: "Poor",
+  },
+  alarm: {
+    from: "#6a1010",
+    to: "#c02828",
+    b1: "#8b1a1a",
+    b2: "#b52020",
+    b3: "#d84040",
+    label: "Alarm",
+    pill: "Alarm",
+  },
+  offline: {
+    from: "#3a3530",
+    to: "#5a5248",
+    b1: "#4a4540",
+    b2: "#6a6258",
+    b3: "#7a7268",
+    label: "No Data",
+    pill: "Offline",
+  },
 };
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
@@ -66,8 +108,8 @@ async function apiFetch(path) {
 }
 async function apiPost(path, body) {
   const res = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(res.status);
@@ -80,8 +122,14 @@ const HIST = 80;
 function useSensor() {
   const empty = () => Array(HIST).fill(0);
   const [d, setD] = useState({
-    co2:0, pm25:0, temp:0, hum:0,
-    co2H: empty(), pm25H: empty(), tempH: empty(), humH: empty(),
+    co2: 0,
+    pm25: 0,
+    temp: 0,
+    hum: 0,
+    co2H: empty(),
+    pm25H: empty(),
+    tempH: empty(),
+    humH: empty(),
     ts: new Date(),
   });
 
@@ -89,29 +137,29 @@ function useSensor() {
     const poll = async () => {
       try {
         const [status, hist] = await Promise.all([
-          apiFetch('/api/status'),
-          apiFetch('/api/history'),
+          apiFetch("/api/status"),
+          apiFetch("/api/history"),
         ]);
         if (!status.latest || status.latest.co2 === 0) return;
 
-        const raw   = hist.history || [];
-        const last  = raw.slice(-HIST);
-        const pad   = HIST - last.length;
+        const raw = hist.history || [];
+        const last = raw.slice(-HIST);
+        const pad = HIST - last.length;
         const first = last[0] || status.latest;
         const padded = [...Array(pad).fill(first), ...last];
 
         setD({
-          co2:  status.latest.co2,
+          co2: status.latest.co2,
           pm25: status.latest.pm25,
           temp: status.latest.temp,
-          hum:  status.latest.hum,
-          co2H:  padded.map(r => r.co2  || 0),
-          pm25H: padded.map(r => r.pm25 || 0),
-          tempH: padded.map(r => r.temp || 0),
-          humH:  padded.map(r => r.hum  || 0),
+          hum: status.latest.hum,
+          co2H: padded.map((r) => r.co2 || 0),
+          pm25H: padded.map((r) => r.pm25 || 0),
+          tempH: padded.map((r) => r.temp || 0),
+          humH: padded.map((r) => r.hum || 0),
           ts: new Date(status.latest.ts),
         });
-      } catch(e) {}
+      } catch (e) {}
     };
     poll();
     const t = setInterval(poll, 5000);
@@ -123,14 +171,18 @@ function useSensor() {
 
 // ─── Real connection status ──────────────────────────────────────────────────
 function useConnectionStatus() {
-  const [status, setStatus] = useState('offline');
+  const [status, setStatus] = useState("offline");
   useEffect(() => {
     const check = async () => {
       try {
-        const data = await apiFetch('/api/status');
-        const age  = data.latest ? Date.now() - data.latest.ts : Infinity;
-        setStatus(age < 15000 ? 'connected' : age < 60000 ? 'degraded' : 'offline');
-      } catch(e) { setStatus('offline'); }
+        const data = await apiFetch("/api/status");
+        const age = data.latest ? Date.now() - data.latest.ts : Infinity;
+        setStatus(
+          age < 15000 ? "connected" : age < 60000 ? "degraded" : "offline",
+        );
+      } catch (e) {
+        setStatus("offline");
+      }
     };
     check();
     const t = setInterval(check, 5000);
@@ -140,82 +192,176 @@ function useConnectionStatus() {
 }
 
 // ─── Sparkline ───────────────────────────────────────────────────────────────
-function Spark({data, color, w=160, h=40, fill=false}) {
-  const nonzero = data.filter(v => v > 0);
-  if (!nonzero.length) return <svg width={w} height={h}/>;
-  const mn=Math.min(...nonzero), mx=Math.max(...nonzero), rng=mx-mn||1;
-  const pts=data.map((v,i)=>{
-    const x=(i/(data.length-1))*w;
-    const y=h-((Math.max(v,mn)-mn)/rng)*(h-6)-3;
+function Spark({ data, color, w = 160, h = 40, fill = false }) {
+  const nonzero = data.filter((v) => v > 0);
+  if (!nonzero.length) return <svg width={w} height={h} />;
+  const mn = Math.min(...nonzero),
+    mx = Math.max(...nonzero),
+    rng = mx - mn || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((Math.max(v, mn) - mn) / rng) * (h - 6) - 3;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
-  const line=`M ${pts.join(' L ')}`;
-  const area=`${line} L ${w},${h} L 0,${h} Z`;
+  const line = `M ${pts.join(" L ")}`;
+  const area = `${line} L ${w},${h} L 0,${h} Z`;
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',overflow:'visible'}}>
-      {fill && <path d={area} fill={color} opacity="0.10"/>}
-      <path d={line} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      style={{ display: "block", overflow: "visible" }}
+    >
+      {fill && <path d={area} fill={color} opacity="0.10" />}
+      <path
+        d={line}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 // ─── Full chart with threshold + live dot ─────────────────────────────────────
-function FullChart({data, color, w, h, min, max, thresh, thLabel}) {
-  const nonzero = data.filter(v => v > 0);
-  if (!nonzero.length || w < 2 || h < 2) return <svg width={w} height={h}/>;
-  const rng=max-min;
-  const toY=v=>h-((Math.max(Math.min(v,max),min)-min)/rng)*(h-12)-6;
-  const pts=data.map((v,i)=>`${((i/(data.length-1))*w).toFixed(1)},${toY(v).toFixed(1)}`);
-  const line=`M ${pts.join(' L ')}`;
-  const area=`${line} L ${w},${h} L 0,${h} Z`;
-  const thY=toY(thresh);
-  const lx=w, ly=toY(data[data.length-1]);
+function FullChart({ data, color, w, h, min, max, thresh, thLabel }) {
+  const nonzero = data.filter((v) => v > 0);
+  if (!nonzero.length || w < 2 || h < 2) return <svg width={w} height={h} />;
+  const rng = max - min;
+  const toY = (v) =>
+    h - ((Math.max(Math.min(v, max), min) - min) / rng) * (h - 12) - 6;
+  const pts = data.map(
+    (v, i) =>
+      `${((i / (data.length - 1)) * w).toFixed(1)},${toY(v).toFixed(1)}`,
+  );
+  const line = `M ${pts.join(" L ")}`;
+  const area = `${line} L ${w},${h} L 0,${h} Z`;
+  const thY = toY(thresh);
+  const lx = w,
+    ly = toY(data[data.length - 1]);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',overflow:'visible'}}>
-      <line x1={0} y1={thY} x2={w} y2={thY} stroke={color} strokeWidth="1" strokeDasharray="5,4" opacity="0.35"/>
-      <text x={4} y={thY-5} fill={color} fontSize="9" fontFamily="'DM Mono',monospace" opacity="0.6">{thLabel}</text>
-      <path d={area} fill={color} opacity="0.07"/>
-      <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx={lx} cy={ly} r="8" fill={color} opacity="0.15"/>
-      <circle cx={lx} cy={ly} r="4" fill={color}/>
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      style={{ display: "block", overflow: "visible" }}
+    >
+      <line
+        x1={0}
+        y1={thY}
+        x2={w}
+        y2={thY}
+        stroke={color}
+        strokeWidth="1"
+        strokeDasharray="5,4"
+        opacity="0.35"
+      />
+      <text
+        x={4}
+        y={thY - 5}
+        fill={color}
+        fontSize="9"
+        fontFamily="'DM Mono',monospace"
+        opacity="0.6"
+      >
+        {thLabel}
+      </text>
+      <path d={area} fill={color} opacity="0.07" />
+      <path
+        d={line}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx={lx} cy={ly} r="8" fill={color} opacity="0.15" />
+      <circle cx={lx} cy={ly} r="4" fill={color} />
     </svg>
   );
 }
 
-function AutoChart({data, color, min, max, thresh, thLabel}) {
-  const ref=useRef(null);
-  const [sz,setSz]=useState({w:400,h:100});
-  useEffect(()=>{
-    if(!ref.current) return;
-    const ro=new ResizeObserver(es=>{
-      for(const e of es) setSz({w:Math.floor(e.contentRect.width),h:Math.floor(e.contentRect.height)});
+function AutoChart({ data, color, min, max, thresh, thLabel }) {
+  const ref = useRef(null);
+  const [sz, setSz] = useState({ w: 400, h: 100 });
+  useEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver((es) => {
+      for (const e of es)
+        setSz({
+          w: Math.floor(e.contentRect.width),
+          h: Math.floor(e.contentRect.height),
+        });
     });
     ro.observe(ref.current);
-    return ()=>ro.disconnect();
-  },[]);
-  return <div ref={ref} style={{width:'100%',height:'100%'}}>
-    <FullChart data={data} color={color} w={sz.w} h={sz.h} min={min} max={max} thresh={thresh} thLabel={thLabel}/>
-  </div>;
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{ width: "100%", height: "100%" }}>
+      <FullChart
+        data={data}
+        color={color}
+        w={sz.w}
+        h={sz.h}
+        min={min}
+        max={max}
+        thresh={thresh}
+        thLabel={thLabel}
+      />
+    </div>
+  );
 }
 
 // ─── Leaf icon ────────────────────────────────────────────────────────────────
-function LeafIcon({size=36}) {
+function LeafIcon({ size = 36 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" style={{display:'block'}}>
-      <path d="M24 6 C12 6,6 18,6 28 C6 38,14 44,24 44 C34 44,42 38,42 28 C42 18,36 6,24 6Z" fill="rgba(255,255,255,0.18)"/>
-      <path d="M24 10 C15 10,9 20,9 28 C9 36,15 42,24 42 C33 42,39 36,39 28 C39 20,33 10,24 10Z" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.3"/>
-      <line x1="24" y1="42" x2="24" y2="15" stroke="rgba(255,255,255,0.5)" strokeWidth="1"/>
-      <path d="M24 30 Q17 23 13 18" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" fill="none"/>
-      <path d="M24 25 Q31 19 35 16" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" fill="none"/>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      style={{ display: "block" }}
+    >
+      <path
+        d="M24 6 C12 6,6 18,6 28 C6 38,14 44,24 44 C34 44,42 38,42 28 C42 18,36 6,24 6Z"
+        fill="rgba(255,255,255,0.18)"
+      />
+      <path
+        d="M24 10 C15 10,9 20,9 28 C9 36,15 42,24 42 C33 42,39 36,39 28 C39 20,33 10,24 10Z"
+        fill="none"
+        stroke="rgba(255,255,255,0.75)"
+        strokeWidth="1.3"
+      />
+      <line
+        x1="24"
+        y1="42"
+        x2="24"
+        y2="15"
+        stroke="rgba(255,255,255,0.5)"
+        strokeWidth="1"
+      />
+      <path
+        d="M24 30 Q17 23 13 18"
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="0.9"
+        fill="none"
+      />
+      <path
+        d="M24 25 Q31 19 35 16"
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="0.9"
+        fill="none"
+      />
     </svg>
   );
 }
 
 // ─── Alarm banner ─────────────────────────────────────────────────────────────
-function AlarmBanner({data, co2T, pm25T, dismissed, onDismiss}) {
-  const co2Alarm  = data.co2  >= co2T && data.co2  > 0;
+function AlarmBanner({ data, co2T, pm25T, dismissed, onDismiss }) {
+  const co2Alarm = data.co2 >= co2T && data.co2 > 0;
   const pm25Alarm = data.pm25 >= pm25T && data.pm25 > 0;
-  const active    = co2Alarm || pm25Alarm;
+  const active = co2Alarm || pm25Alarm;
   const [exiting, setExiting] = useState(false);
   const everActive = useRef(false);
 
@@ -229,119 +375,363 @@ function AlarmBanner({data, co2T, pm25T, dismissed, onDismiss}) {
     // if never active: don't touch exiting — banner stays null on page load
   }, [active]);
 
-  const handleDismiss = () => { setExiting(true); setTimeout(onDismiss, 260); };
+  const handleDismiss = () => {
+    setExiting(true);
+    setTimeout(onDismiss, 260);
+  };
 
   if ((!active && !exiting) || dismissed) return null;
 
   const msgs = [];
-  if (co2Alarm)  msgs.push(`CO₂ ${data.co2} ppm ≥ ${co2T} ppm threshold`);
-  if (pm25Alarm) msgs.push(`PM2.5 ${data.pm25} µg/m³ ≥ ${pm25T} µg/m³ threshold`);
+  if (co2Alarm) msgs.push(`CO₂ ${data.co2} ppm ≥ ${co2T} ppm threshold`);
+  if (pm25Alarm)
+    msgs.push(`PM2.5 ${data.pm25} µg/m³ ≥ ${pm25T} µg/m³ threshold`);
 
   return (
-    <div className={exiting ? 'banner-out' : 'banner-in'} style={{
-      flexShrink:0, background:'linear-gradient(90deg,#7a1010,#c02828)', color:'#fff',
-      display:'flex', alignItems:'center', gap:12, padding:'10px 24px',
-      boxShadow:'0 2px 12px rgba(192,40,40,0.35)',
-    }}>
-      <div style={{width:8,height:8,borderRadius:'50%',background:'#fff',flexShrink:0,animation:'blink-dot 1s ease-in-out infinite'}}/>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}>
-        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-        <line x1="12" y1="9" x2="12" y2="13" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
-        <line x1="12" y1="17" x2="12.01" y2="17" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+    <div
+      className={exiting ? "banner-out" : "banner-in"}
+      style={{
+        flexShrink: 0,
+        background: "linear-gradient(90deg,#7a1010,#c02828)",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 24px",
+        boxShadow: "0 2px 12px rgba(192,40,40,0.35)",
+      }}
+    >
+      <div
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: "#fff",
+          flexShrink: 0,
+          animation: "blink-dot 1s ease-in-out infinite",
+        }}
+      />
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        style={{ flexShrink: 0 }}
+      >
+        <path
+          d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+          stroke="#fff"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line
+          x1="12"
+          y1="9"
+          x2="12"
+          y2="13"
+          stroke="#fff"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <line
+          x1="12"
+          y1="17"
+          x2="12.01"
+          y2="17"
+          stroke="#fff"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
       </svg>
-      <div style={{flex:1}}>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.12em',fontWeight:500}}>AIR QUALITY ALARM — </span>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:10,opacity:0.9}}>{msgs.join(' · ')}</span>
+      <div style={{ flex: 1 }}>
+        <span
+          style={{
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 10,
+            letterSpacing: "0.12em",
+            fontWeight: 500,
+          }}
+        >
+          AIR QUALITY ALARM —{" "}
+        </span>
+        <span
+          style={{
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 10,
+            opacity: 0.9,
+          }}
+        >
+          {msgs.join(" · ")}
+        </span>
       </div>
-      <button onClick={handleDismiss} style={{
-        background:'rgba(255,255,255,0.15)',border:'1px solid rgba(255,255,255,0.3)',
-        color:'#fff',borderRadius:8,padding:'4px 12px',cursor:'pointer',
-        fontFamily:"'DM Mono',monospace",fontSize:9,letterSpacing:'0.1em',flexShrink:0,
-      }}>DISMISS</button>
+      <button
+        onClick={handleDismiss}
+        style={{
+          background: "rgba(255,255,255,0.15)",
+          border: "1px solid rgba(255,255,255,0.3)",
+          color: "#fff",
+          borderRadius: 8,
+          padding: "4px 12px",
+          cursor: "pointer",
+          fontFamily: "'DM Mono',monospace",
+          fontSize: 9,
+          letterSpacing: "0.1em",
+          flexShrink: 0,
+        }}
+      >
+        DISMISS
+      </button>
     </div>
   );
 }
 
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { id:'overview', label:'Overview' },
-  { id:'history',  label:'History'  },
-  { id:'controls', label:'Controls' },
+  { id: "overview", label: "Overview" },
+  { id: "history", label: "History" },
+  { id: "controls", label: "Controls" },
 ];
 
-function ConnectionBadge({status}) {
+function ConnectionBadge({ status }) {
   const cfg = {
-    connected: { color:'#4a9e4a', bg:'rgba(74,158,74,0.10)', label:'Connected', dot:'#4a9e4a' },
-    degraded:  { color:'#c9941a', bg:'rgba(201,148,26,0.10)', label:'Degraded',  dot:'#c9941a' },
-    offline:   { color:'#c02828', bg:'rgba(192,40,40,0.10)', label:'Offline',   dot:'#c02828' },
-  }[status] || { color:'#c02828', bg:'rgba(192,40,40,0.10)', label:'Offline', dot:'#c02828' };
+    connected: {
+      color: "#4a9e4a",
+      bg: "rgba(74,158,74,0.10)",
+      label: "Connected",
+      dot: "#4a9e4a",
+    },
+    degraded: {
+      color: "#c9941a",
+      bg: "rgba(201,148,26,0.10)",
+      label: "Degraded",
+      dot: "#c9941a",
+    },
+    offline: {
+      color: "#c02828",
+      bg: "rgba(192,40,40,0.10)",
+      label: "Offline",
+      dot: "#c02828",
+    },
+  }[status] || {
+    color: "#c02828",
+    bg: "rgba(192,40,40,0.10)",
+    label: "Offline",
+    dot: "#c02828",
+  };
   return (
-    <div style={{display:'flex',alignItems:'center',gap:7,padding:'5px 12px',borderRadius:99,background:cfg.bg,border:`1px solid ${cfg.color}22`}}>
-      <div style={{position:'relative',width:8,height:8,flexShrink:0}}>
-        {status==='connected' && <div style={{position:'absolute',inset:0,borderRadius:'50%',background:cfg.dot,opacity:0.4,animation:'pulse-ring 2s ease-in-out infinite'}}/>}
-        <div style={{position:'absolute',inset:status==='connected'?1:0,borderRadius:'50%',background:cfg.dot}}/>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        padding: "5px 12px",
+        borderRadius: 99,
+        background: cfg.bg,
+        border: `1px solid ${cfg.color}22`,
+      }}
+    >
+      <div style={{ position: "relative", width: 8, height: 8, flexShrink: 0 }}>
+        {status === "connected" && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              background: cfg.dot,
+              opacity: 0.4,
+              animation: "pulse-ring 2s ease-in-out infinite",
+            }}
+          />
+        )}
+        <div
+          style={{
+            position: "absolute",
+            inset: status === "connected" ? 1 : 0,
+            borderRadius: "50%",
+            background: cfg.dot,
+          }}
+        />
       </div>
-      <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:cfg.color,letterSpacing:'0.1em',whiteSpace:'nowrap'}}>{cfg.label.toUpperCase()}</span>
+      <span
+        style={{
+          fontFamily: "'DM Mono',monospace",
+          fontSize: 9,
+          color: cfg.color,
+          letterSpacing: "0.1em",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {cfg.label.toUpperCase()}
+      </span>
     </div>
   );
 }
 
 function LiveClock() {
-  const [t,setT]=useState(new Date().toLocaleTimeString());
-  useEffect(()=>{ const i=setInterval(()=>setT(new Date().toLocaleTimeString()),1000); return()=>clearInterval(i); },[]);
+  const [t, setT] = useState(new Date().toLocaleTimeString());
+  useEffect(() => {
+    const i = setInterval(() => setT(new Date().toLocaleTimeString()), 1000);
+    return () => clearInterval(i);
+  }, []);
   return <span>{t}</span>;
 }
 
-function NavBar({tab, setTab, level}) {
-  const dot = { good:'#4a9e4a', warning:'#c9941a', danger:'#c02828' }[level] || '#ccc';
+function NavBar({ tab, setTab, level }) {
+  const dot =
+    { good: "#4a9e4a", warning: "#c9941a", poor: "#c96a1a", alarm: "#c02828" }[
+      level
+    ] || "#ccc";
   const connStatus = useConnectionStatus();
   const mobile = useIsMobile();
   return (
-    <header style={{
-      flexShrink:0, background:C.surface,
-      borderBottom:`1px solid ${C.border}`,
-      display:'flex', flexDirection: mobile ? 'column' : 'row',
-      alignItems: mobile ? 'stretch' : 'center',
-      padding: mobile ? '10px 16px 0' : '0 28px',
-      boxShadow:C.shadow, position:'relative', zIndex:100,
-    }}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{position:'relative',width:20,height:20}}>
-            <div style={{position:'absolute',inset:0,borderRadius:'50%',background:dot,opacity:0.25,animation:'pulse-ring 2.4s ease-in-out infinite'}}/>
-            <div style={{position:'absolute',inset:4,borderRadius:'50%',background:dot}}/>
+    <header
+      style={{
+        flexShrink: 0,
+        background: C.surface,
+        borderBottom: `1px solid ${C.border}`,
+        display: "flex",
+        flexDirection: mobile ? "column" : "row",
+        alignItems: mobile ? "stretch" : "center",
+        padding: mobile ? "10px 16px 0" : "0 28px",
+        boxShadow: C.shadow,
+        position: "relative",
+        zIndex: 100,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ position: "relative", width: 20, height: 20 }}>
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: "50%",
+                background: dot,
+                opacity: 0.25,
+                animation: "pulse-ring 2.4s ease-in-out infinite",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 4,
+                borderRadius: "50%",
+                background: dot,
+              }}
+            />
           </div>
-          <span style={{fontFamily:"'Instrument Serif',serif",fontSize:18,color:C.text,fontWeight:400,letterSpacing:'-0.01em'}}>Air Quality</span>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.12em',marginTop:2}}>ESP32</span>
+          <span
+            style={{
+              fontFamily: "'Instrument Serif',serif",
+              fontSize: 18,
+              color: C.text,
+              fontWeight: 400,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Air Quality
+          </span>
+          <span
+            style={{
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 9,
+              color: C.muted,
+              letterSpacing: "0.12em",
+              marginTop: 2,
+            }}
+          >
+            ESP32
+          </span>
         </div>
-        {mobile && <ConnectionBadge status={connStatus}/>}
+        {mobile && <ConnectionBadge status={connStatus} />}
       </div>
 
-      <nav style={{display:'flex',gap:2,flex:1,position:'relative',zIndex:1,marginLeft:mobile?0:24,marginTop:mobile?6:0}}>
-        {NAV_ITEMS.map(n=>{
-          const active=tab===n.id;
+      <nav
+        style={{
+          display: "flex",
+          gap: 2,
+          flex: 1,
+          position: "relative",
+          zIndex: 1,
+          marginLeft: mobile ? 0 : 24,
+          marginTop: mobile ? 6 : 0,
+        }}
+      >
+        {NAV_ITEMS.map((n) => {
+          const active = tab === n.id;
           return (
-            <button key={n.id} onClick={()=>setTab(n.id)} style={{
-              flex: mobile ? 1 : 'none',
-              padding: mobile ? '8px 0' : '6px 16px',
-              border:'none',background:'transparent',cursor:'pointer',outline:'none',
-              fontFamily:"'Space Grotesk',sans-serif",fontSize:13,fontWeight:active?500:400,
-              color:active?C.text:C.muted, borderRadius:8,position:'relative',transition:'color 0.15s',zIndex:2,
-              textAlign:'center',
-            }}>
+            <button
+              key={n.id}
+              onClick={() => setTab(n.id)}
+              style={{
+                flex: mobile ? 1 : "none",
+                padding: mobile ? "8px 0" : "6px 16px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                outline: "none",
+                fontFamily: "'Space Grotesk',sans-serif",
+                fontSize: 13,
+                fontWeight: active ? 500 : 400,
+                color: active ? C.text : C.muted,
+                borderRadius: 8,
+                position: "relative",
+                transition: "color 0.15s",
+                zIndex: 2,
+                textAlign: "center",
+              }}
+            >
               {n.label}
-              {active && <div style={{position:'absolute',bottom:-1,left: mobile?8:12,right: mobile?8:12,height:2,background:C.text,borderRadius:'2px 2px 0 0'}}/>}
+              {active && (
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: -1,
+                    left: mobile ? 8 : 12,
+                    right: mobile ? 8 : 12,
+                    height: 2,
+                    background: C.text,
+                    borderRadius: "2px 2px 0 0",
+                  }}
+                />
+              )}
             </button>
           );
         })}
       </nav>
 
       {!mobile && (
-        <div style={{display:'flex',alignItems:'center',gap:16,flexShrink:0}}>
-          <ConnectionBadge status={connStatus}/>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,letterSpacing:'0.08em',textAlign:'right'}}>
-            <div style={{fontSize:8,letterSpacing:'0.14em',marginBottom:1}}>LAST UPDATE</div>
-            <LiveClock/>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            flexShrink: 0,
+          }}
+        >
+          <ConnectionBadge status={connStatus} />
+          <div
+            style={{
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 10,
+              color: C.muted,
+              letterSpacing: "0.08em",
+              textAlign: "right",
+            }}
+          >
+            <div
+              style={{ fontSize: 8, letterSpacing: "0.14em", marginBottom: 1 }}
+            >
+              LAST UPDATE
+            </div>
+            <LiveClock />
           </div>
         </div>
       )}
@@ -352,67 +742,262 @@ function NavBar({tab, setTab, level}) {
 // ═══════════════════════════════════════════════════════════════════════════
 // OVERVIEW  — fix: removed maxWidth constraint so it uses full width
 // ═══════════════════════════════════════════════════════════════════════════
-function Overview({data, score, scoreLabel}) {
+function Overview({ data, score, scoreLabel }) {
   const isOffline = data.co2 === 0;
-  const level = isOffline ? 'offline' : getLevel(data.co2, data.pm25);
+  const level = isOffline ? "offline" : getLevel(data.co2, data.pm25);
   const hc = HERO[level];
-  const airScore = isOffline ? null : (score ?? (level==='good'
-    ? Math.min(99,Math.max(40,Math.round(100-(data.co2-400)/8-data.pm25)))
-    : level==='warning' ? 55 : 20));
-  const statusLabel = isOffline ? 'Offline' : (scoreLabel ?? hc.pill);
+  const airScore = isOffline
+    ? null
+    : (score ??
+      (level === "good"
+        ? Math.min(
+            99,
+            Math.max(40, Math.round(100 - (data.co2 - 400) / 8 - data.pm25)),
+          )
+        : level === "warning"
+          ? 55
+          : 20));
+  const statusLabel = isOffline ? "Offline" : (scoreLabel ?? hc.pill);
 
-  const co2Pct  = Math.min(98,((data.co2 -400)/800)*100);
-  const scoreColor = {good:'#4a9e4a',warning:'#c9941a',danger:'#c02828'}[level] ?? '#6a6258';
+  const co2Pct = Math.min(98, ((data.co2 - 400) / 800) * 100);
+  const scoreColor =
+    { good: "#4a9e4a", warning: "#c9941a", danger: "#c02828" }[level] ??
+    "#6a6258";
   const mobile = useIsMobile();
 
   return (
-    <div className="panel-scroll slide-in" style={{flex:1,padding: mobile ? '16px' : '28px 40px',display:'flex',flexDirection:'column',gap: mobile ? 14 : 22,maxWidth:1050,margin:'0 auto',width:'100%'}}>
-
+    <div
+      className="panel-scroll slide-in"
+      style={{
+        flex: 1,
+        padding: mobile ? "16px" : "28px 40px",
+        display: "flex",
+        flexDirection: "column",
+        gap: mobile ? 14 : 22,
+        maxWidth: 1050,
+        margin: "0 auto",
+        width: "100%",
+      }}
+    >
       {/* Hero card */}
-      <div style={{
-        borderRadius: mobile ? 20 : 28,
-        background:`linear-gradient(135deg,${hc.from},${hc.to})`,
-        position:'relative', overflow:'hidden',
-        padding: mobile ? '24px 20px' : '36px 40px',
-        boxShadow:`0 8px 40px ${hc.b1}40`,
-        transition:'background 1.2s ease, box-shadow 1.2s ease', flexShrink:0,
-      }}>
-        <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0.16,pointerEvents:'none'}} viewBox="0 0 1200 240" preserveAspectRatio="xMidYMid slice">
-          <circle cx="1050" cy="40"  r="200" fill={hc.b3}/>
-          <circle cx="100"  cy="220" r="160" fill={hc.b2}/>
-          <circle cx="560"  cy="270" r="190" fill={hc.b1}/>
-          <circle cx="280"  cy="-20" r="110"  fill={hc.b3}/>
+      <div
+        style={{
+          borderRadius: mobile ? 20 : 28,
+          background: `linear-gradient(135deg,${hc.from},${hc.to})`,
+          position: "relative",
+          overflow: "hidden",
+          padding: mobile ? "24px 20px" : "36px 40px",
+          boxShadow: `0 8px 40px ${hc.b1}40`,
+          transition: "background 1.2s ease, box-shadow 1.2s ease",
+          flexShrink: 0,
+        }}
+      >
+        <svg
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            opacity: 0.16,
+            pointerEvents: "none",
+          }}
+          viewBox="0 0 1200 240"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <circle cx="1050" cy="40" r="200" fill={hc.b3} />
+          <circle cx="100" cy="220" r="160" fill={hc.b2} />
+          <circle cx="560" cy="270" r="190" fill={hc.b1} />
+          <circle cx="280" cy="-20" r="110" fill={hc.b3} />
         </svg>
-        <div style={{position:'relative',display:'flex',flexDirection: mobile ? 'column' : 'row',gap: mobile ? 16 : 40,alignItems: mobile ? 'center' : 'stretch'}}>
-          <div style={{display:'flex',flexDirection: mobile ? 'row' : 'column',alignItems:'center',justifyContent:'center',gap: mobile ? 16 : 0,paddingBottom: mobile ? 16 : 0,paddingRight: mobile ? 0 : 40,borderBottom: mobile ? '1px solid rgba(255,255,255,0.2)' : 'none',borderRight: mobile ? 'none' : '1px solid rgba(255,255,255,0.2)',width: mobile ? '100%' : undefined,minWidth: mobile ? undefined : 160}}>
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: mobile ? "column" : "row",
+            gap: mobile ? 16 : 40,
+            alignItems: mobile ? "center" : "stretch",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: mobile ? "row" : "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: mobile ? 16 : 0,
+              paddingBottom: mobile ? 16 : 0,
+              paddingRight: mobile ? 0 : 40,
+              borderBottom: mobile ? "1px solid rgba(255,255,255,0.2)" : "none",
+              borderRight: mobile ? "none" : "1px solid rgba(255,255,255,0.2)",
+              width: mobile ? "100%" : undefined,
+              minWidth: mobile ? undefined : 160,
+            }}
+          >
             {isOffline ? (
-              <svg width="44" height="44" viewBox="0 0 48 48" style={{display:'block',opacity:0.55}}>
-                <circle cx="24" cy="24" r="18" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"/>
-                <path d="M24 14v10l6 4" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round"/>
+              <svg
+                width="44"
+                height="44"
+                viewBox="0 0 48 48"
+                style={{ display: "block", opacity: 0.55 }}
+              >
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="18"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.6)"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M24 14v10l6 4"
+                  stroke="rgba(255,255,255,0.6)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
-            ) : <LeafIcon size={mobile ? 36 : 44}/>}
-            <div style={{display:'flex',flexDirection:'column',alignItems: mobile ? 'flex-start' : 'center'}}>
-              <div style={{fontSize: mobile ? 56 : 76,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif",letterSpacing:'-0.03em',marginTop: mobile ? 0 : 10,opacity:isOffline?0.4:1}}>
-                {airScore ?? '—'}
+            ) : (
+              <LeafIcon size={mobile ? 36 : 44} />
+            )}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: mobile ? "flex-start" : "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: mobile ? 56 : 76,
+                  color: "#fff",
+                  lineHeight: 1,
+                  fontWeight: 300,
+                  fontFamily: "'Instrument Serif',serif",
+                  letterSpacing: "-0.03em",
+                  marginTop: mobile ? 0 : 10,
+                  opacity: isOffline ? 0.4 : 1,
+                }}
+              >
+                {airScore ?? "—"}
               </div>
-              <div style={{fontSize:10,color:'rgba(255,255,255,0.65)',textTransform:'uppercase',letterSpacing:'0.16em',marginTop:4,fontFamily:"'DM Mono',monospace"}}>Air Score</div>
-              <div style={{marginTop:10,fontSize:12,color:'#fff',fontFamily:"'DM Mono',monospace",letterSpacing:'0.06em',background:'rgba(255,255,255,0.18)',borderRadius:99,padding:'4px 14px',backdropFilter:'blur(4px)',opacity:isOffline?0.7:1,alignSelf: mobile ? 'flex-start' : 'center'}}>{statusLabel}</div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "rgba(255,255,255,0.65)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.16em",
+                  marginTop: 4,
+                  fontFamily: "'DM Mono',monospace",
+                }}
+              >
+                Air Score
+              </div>
+              <div
+                style={{
+                  marginTop: 10,
+                  fontSize: 12,
+                  color: "#fff",
+                  fontFamily: "'DM Mono',monospace",
+                  letterSpacing: "0.06em",
+                  background: "rgba(255,255,255,0.18)",
+                  borderRadius: 99,
+                  padding: "4px 14px",
+                  backdropFilter: "blur(4px)",
+                  opacity: isOffline ? 0.7 : 1,
+                  alignSelf: mobile ? "flex-start" : "center",
+                }}
+              >
+                {statusLabel}
+              </div>
             </div>
           </div>
-          <div style={{flex:1,display:'flex',flexDirection:'column',gap: mobile ? 10 : 16,width: mobile ? '100%' : undefined}}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: mobile ? 10 : 16,
+              width: mobile ? "100%" : undefined,
+            }}
+          >
             {[
-              {label:'Carbon Dioxide', val:data.co2,  unit:'ppm',   hist:data.co2H,  spark:data.co2>=1000?'#ffb0b0':data.co2>=800?'#ffe0a0':'#b0ffb0'},
-              {label:'Fine Particles', val:data.pm25, unit:'µg/m³', hist:data.pm25H, spark:data.pm25>=55?'#ffb0b0':data.pm25>=35?'#ffe0a0':'#b0ffb0'},
-            ].map(m=>(
-              <div key={m.label} style={{background:'rgba(255,255,255,0.10)',borderRadius:18,padding:'18px 24px',backdropFilter:'blur(8px)',flex:1,opacity:isOffline?0.5:1}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+              {
+                label: "Carbon Dioxide",
+                val: data.co2,
+                unit: "ppm",
+                hist: data.co2H,
+                spark:
+                  data.co2 >= 1000
+                    ? "#ffb0b0"
+                    : data.co2 >= 800
+                      ? "#ffe0a0"
+                      : "#b0ffb0",
+              },
+              {
+                label: "Fine Particles",
+                val: data.pm25,
+                unit: "µg/m³",
+                hist: data.pm25H,
+                spark:
+                  data.pm25 >= 55
+                    ? "#ffb0b0"
+                    : data.pm25 >= 35
+                      ? "#ffe0a0"
+                      : "#b0ffb0",
+              },
+            ].map((m) => (
+              <div
+                key={m.label}
+                style={{
+                  background: "rgba(255,255,255,0.10)",
+                  borderRadius: 18,
+                  padding: "18px 24px",
+                  backdropFilter: "blur(8px)",
+                  flex: 1,
+                  opacity: isOffline ? 0.5 : 1,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-end",
+                  }}
+                >
                   <div>
-                    <div style={{fontSize:10,color:'rgba(255,255,255,0.6)',textTransform:'uppercase',letterSpacing:'0.14em',fontFamily:"'DM Mono',monospace",marginBottom:6}}>{m.label}</div>
-                    <div style={{fontSize:44,color:'#fff',lineHeight:1,fontWeight:300,fontFamily:"'Instrument Serif',serif"}}>
-                      {isOffline ? '—' : (m.val || '—')}<span style={{fontSize:15,color:'rgba(255,255,255,0.6)',marginLeft:8}}>{m.unit}</span>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "rgba(255,255,255,0.6)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.14em",
+                        fontFamily: "'DM Mono',monospace",
+                        marginBottom: 6,
+                      }}
+                    >
+                      {m.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 44,
+                        color: "#fff",
+                        lineHeight: 1,
+                        fontWeight: 300,
+                        fontFamily: "'Instrument Serif',serif",
+                      }}
+                    >
+                      {isOffline ? "—" : m.val || "—"}
+                      <span
+                        style={{
+                          fontSize: 15,
+                          color: "rgba(255,255,255,0.6)",
+                          marginLeft: 8,
+                        }}
+                      >
+                        {m.unit}
+                      </span>
                     </div>
                   </div>
-                  <Spark data={m.hist} color={m.spark} w={140} h={44} fill/>
+                  <Spark data={m.hist} color={m.spark} w={140} h={44} fill />
                 </div>
               </div>
             ))}
@@ -421,55 +1006,305 @@ function Overview({data, score, scoreLabel}) {
       </div>
 
       {/* Temp + Humidity */}
-      <div style={{display:'flex',flexDirection: mobile ? 'row' : 'row',gap: mobile ? 10 : 18,flexShrink:0}}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: mobile ? "row" : "row",
+          gap: mobile ? 10 : 18,
+          flexShrink: 0,
+        }}
+      >
         {[
-          {label:'Temperature', val:data.temp.toFixed(1), unit:'°C',  hist:data.tempH, color:'#b07030'},
-          {label:'Humidity',    val:data.hum.toFixed(1),  unit:'%RH', hist:data.humH,  color:'#4a7a9a'},
-        ].map(m=>(
-          <div key={m.label} style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius: mobile ? 16 : 22,padding: mobile ? '16px 18px' : '24px 28px',boxShadow:C.shadow}}>
-            <div style={{fontSize:9,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace",marginBottom:8}}>{m.label}</div>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-              <div style={{fontFamily:"'Instrument Serif',serif",fontSize: mobile ? 36 : 48,color:C.text,fontWeight:300,lineHeight:1}}>
-                {m.val}<span style={{fontSize: mobile ? 12 : 16,color:C.muted,marginLeft:4}}>{m.unit}</span>
+          {
+            label: "Temperature",
+            val: data.temp.toFixed(1),
+            unit: "°C",
+            hist: data.tempH,
+            color: "#b07030",
+          },
+          {
+            label: "Humidity",
+            val: data.hum.toFixed(1),
+            unit: "%RH",
+            hist: data.humH,
+            color: "#4a7a9a",
+          },
+        ].map((m) => (
+          <div
+            key={m.label}
+            style={{
+              flex: 1,
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: mobile ? 16 : 22,
+              padding: mobile ? "16px 18px" : "24px 28px",
+              boxShadow: C.shadow,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 9,
+                color: C.muted,
+                textTransform: "uppercase",
+                letterSpacing: "0.16em",
+                fontFamily: "'DM Mono',monospace",
+                marginBottom: 8,
+              }}
+            >
+              {m.label}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-end",
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: "'Instrument Serif',serif",
+                  fontSize: mobile ? 36 : 48,
+                  color: C.text,
+                  fontWeight: 300,
+                  lineHeight: 1,
+                }}
+              >
+                {m.val}
+                <span
+                  style={{
+                    fontSize: mobile ? 12 : 16,
+                    color: C.muted,
+                    marginLeft: 4,
+                  }}
+                >
+                  {m.unit}
+                </span>
               </div>
-              {!mobile && <Spark data={m.hist} color={m.color} w={120} h={42}/>}
+              {!mobile && (
+                <Spark data={m.hist} color={m.color} w={120} h={42} />
+              )}
             </div>
           </div>
         ))}
       </div>
 
       {/* CO₂ range bar */}
-      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius: mobile ? 16 : 22,padding: mobile ? '16px 18px' : '24px 28px',boxShadow:C.shadow,flexShrink:0}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:16}}>
-          <div style={{fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace"}}>CO₂ Level</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:C.text}}>{data.co2} <span style={{fontSize:10,color:C.muted}}>ppm</span></div>
+      <div
+        style={{
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: mobile ? 16 : 22,
+          padding: mobile ? "16px 18px" : "24px 28px",
+          boxShadow: C.shadow,
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 16,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              color: C.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.16em",
+              fontFamily: "'DM Mono',monospace",
+            }}
+          >
+            CO₂ Level
+          </div>
+          <div
+            style={{
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 14,
+              color: C.text,
+            }}
+          >
+            {data.co2} <span style={{ fontSize: 10, color: C.muted }}>ppm</span>
+          </div>
         </div>
-        <div style={{height:12,borderRadius:99,background:'rgba(80,60,30,0.07)',position:'relative'}}>
-          <div style={{position:'absolute',inset:0,borderRadius:99,background:'linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)',opacity:0.22}}/>
-          <div style={{position:'absolute',left:0,top:0,height:'100%',width:`${co2Pct}%`,background:'linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)',borderRadius:99,transition:'width 0.7s ease',opacity:0.8}}/>
-          <div style={{position:'absolute',left:`${Math.min(96,co2Pct)}%`,top:'50%',transform:'translate(-50%,-50%)',width:20,height:20,borderRadius:'50%',background:scoreColor,border:`3px solid ${C.surface}`,boxShadow:`0 0 0 2px ${scoreColor}55`,transition:'left 0.7s ease'}}/>
+        <div
+          style={{
+            height: 12,
+            borderRadius: 99,
+            background: "rgba(80,60,30,0.07)",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: 99,
+              background: "linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)",
+              opacity: 0.22,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: "100%",
+              width: `${co2Pct}%`,
+              background: "linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)",
+              borderRadius: 99,
+              transition: "width 0.7s ease",
+              opacity: 0.8,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: `${Math.min(96, co2Pct)}%`,
+              top: "50%",
+              transform: "translate(-50%,-50%)",
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              background: scoreColor,
+              border: `3px solid ${C.surface}`,
+              boxShadow: `0 0 0 2px ${scoreColor}55`,
+              transition: "left 0.7s ease",
+            }}
+          />
         </div>
-        <div style={{display:'flex',justifyContent:'space-between',marginTop:10}}>
-          {['400','600','800','1000','1200'].map(v=>(
-            <span key={v} style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace"}}>{v}</span>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: 10,
+          }}
+        >
+          {["400", "600", "800", "1000", "1200"].map((v) => (
+            <span
+              key={v}
+              style={{
+                fontSize: 10,
+                color: C.muted,
+                fontFamily: "'DM Mono',monospace",
+              }}
+            >
+              {v}
+            </span>
           ))}
         </div>
       </div>
 
       {/* PM2.5 range bar */}
-      <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius: mobile ? 16 : 22,padding: mobile ? '16px 18px' : '24px 28px',boxShadow:C.shadow,flexShrink:0}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:16}}>
-          <div style={{fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.16em',fontFamily:"'DM Mono',monospace"}}>PM2.5 Level</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:14,color:C.text}}>{data.pm25} <span style={{fontSize:10,color:C.muted}}>µg/m³</span></div>
+      <div
+        style={{
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: mobile ? 16 : 22,
+          padding: mobile ? "16px 18px" : "24px 28px",
+          boxShadow: C.shadow,
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 16,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              color: C.muted,
+              textTransform: "uppercase",
+              letterSpacing: "0.16em",
+              fontFamily: "'DM Mono',monospace",
+            }}
+          >
+            PM2.5 Level
+          </div>
+          <div
+            style={{
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 14,
+              color: C.text,
+            }}
+          >
+            {data.pm25}{" "}
+            <span style={{ fontSize: 10, color: C.muted }}>µg/m³</span>
+          </div>
         </div>
-        <div style={{height:12,borderRadius:99,background:'rgba(80,60,30,0.07)',position:'relative'}}>
-          <div style={{position:'absolute',inset:0,borderRadius:99,background:'linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)',opacity:0.22}}/>
-          <div style={{position:'absolute',left:0,top:0,height:'100%',width:`${Math.min(98,(data.pm25/80)*100)}%`,background:'linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)',borderRadius:99,transition:'width 0.7s ease',opacity:0.8}}/>
-          <div style={{position:'absolute',left:`${Math.min(96,(data.pm25/80)*100)}%`,top:'50%',transform:'translate(-50%,-50%)',width:20,height:20,borderRadius:'50%',background:data.pm25>=55?'#c02828':data.pm25>=35?'#c9941a':'#4a9e4a',border:`3px solid ${C.surface}`,transition:'left 0.7s ease'}}/>
+        <div
+          style={{
+            height: 12,
+            borderRadius: 99,
+            background: "rgba(80,60,30,0.07)",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: 99,
+              background: "linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)",
+              opacity: 0.22,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: "100%",
+              width: `${Math.min(98, (data.pm25 / 80) * 100)}%`,
+              background: "linear-gradient(90deg,#4a9e4a,#c9941a 55%,#c02828)",
+              borderRadius: 99,
+              transition: "width 0.7s ease",
+              opacity: 0.8,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: `${Math.min(96, (data.pm25 / 80) * 100)}%`,
+              top: "50%",
+              transform: "translate(-50%,-50%)",
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              background:
+                data.pm25 >= 55
+                  ? "#c02828"
+                  : data.pm25 >= 35
+                    ? "#c9941a"
+                    : "#4a9e4a",
+              border: `3px solid ${C.surface}`,
+              transition: "left 0.7s ease",
+            }}
+          />
         </div>
-        <div style={{display:'flex',justifyContent:'space-between',marginTop:10}}>
-          {['0','20','35','55','80'].map(v=>(
-            <span key={v} style={{fontSize:10,color:C.muted,fontFamily:"'DM Mono',monospace"}}>{v}</span>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: 10,
+          }}
+        >
+          {["0", "20", "35", "55", "80"].map((v) => (
+            <span
+              key={v}
+              style={{
+                fontSize: 10,
+                color: C.muted,
+                fontFamily: "'DM Mono',monospace",
+              }}
+            >
+              {v}
+            </span>
           ))}
         </div>
       </div>
@@ -482,87 +1317,264 @@ function Overview({data, score, scoreLabel}) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const RANGE_OPTIONS = [
-  { label:'30s', points: 6  },
-  { label:'1m',  points: 12 },
-  { label:'2m',  points: 24 },
-  { label:'All', points: HIST },
+  { label: "30s", points: 6 },
+  { label: "1m", points: 12 },
+  { label: "2m", points: 24 },
+  { label: "All", points: HIST },
 ];
 
 function scoreToColor(score) {
-  if (score === null || score === undefined) return 'rgba(80,60,30,0.06)';
-  if (score >= 80) return '#4a9e4a';
-  if (score >= 60) return '#7ec87e';
-  if (score >= 40) return '#c9941a';
-  if (score >= 20) return '#e07070';
-  return '#c02828';
+  if (score === null || score === undefined) return "rgba(80,60,30,0.06)";
+  if (score >= 80) return "#4a9e4a";
+  if (score >= 60) return "#7ec87e";
+  if (score >= 40) return "#c9941a";
+  if (score >= 20) return "#e07070";
+  return "#c02828";
 }
 
 // Per-hour detail panel — fix: show "no data" when day.score is null
-function DayDetailPanel({day, onClose}) {
+function DayDetailPanel({ day, onClose }) {
   const color = scoreToColor(day.score);
   return (
-    <div className="fade-in" style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:18,padding:'16px',boxShadow:C.shadowMd,marginTop:12}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
+    <div
+      className="fade-in"
+      style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 18,
+        padding: "16px",
+        boxShadow: C.shadowMd,
+        marginTop: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 12,
+        }}
+      >
         <div>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:12,color:C.text,fontWeight:500}}>
-            {day.date.toLocaleDateString('en',{weekday:'long',month:'short',day:'numeric'})}
+          <div
+            style={{
+              fontFamily: "'Space Grotesk',sans-serif",
+              fontSize: 12,
+              color: C.text,
+              fontWeight: 500,
+            }}
+          >
+            {day.date.toLocaleDateString("en", {
+              weekday: "long",
+              month: "short",
+              day: "numeric",
+            })}
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:4}}>
-            <div style={{width:10,height:10,borderRadius:3,background:color}}/>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>Score {day.score ?? '—'}</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 4,
+            }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 3,
+                background: color,
+              }}
+            />
+            <span
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+              }}
+            >
+              Score {day.score ?? "—"}
+            </span>
           </div>
         </div>
-        <button onClick={onClose} style={{background:'transparent',border:'none',cursor:'pointer',color:C.muted,fontSize:14,padding:'2px 6px',lineHeight:1}}>✕</button>
+        <button
+          onClick={onClose}
+          style={{
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            color: C.muted,
+            fontSize: 14,
+            padding: "2px 6px",
+            lineHeight: 1,
+          }}
+        >
+          ✕
+        </button>
       </div>
 
       {day.score === null ? (
-        <div style={{padding:'20px 0',textAlign:'center',fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,letterSpacing:'0.08em'}}>
+        <div
+          style={{
+            padding: "20px 0",
+            textAlign: "center",
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 10,
+            color: C.muted,
+            letterSpacing: "0.08em",
+          }}
+        >
           No sensor data recorded for this day.
         </div>
       ) : (
-        <NoDataDayContent day={day}/>
+        <NoDataDayContent day={day} />
       )}
     </div>
   );
 }
 
-function NoDataDayContent({day}) {
+function NoDataDayContent({ day }) {
   // Generate deterministic per-hour bars from the day's real daily score
   const seed = day.date.getDate() + day.date.getMonth() * 31;
-  const co2Base  = 400 + Math.round(day.score * 6.4);
+  const co2Base = 400 + Math.round(day.score * 6.4);
   const pm25Base = Math.round(day.score * 0.55);
-  const detail = Array.from({length:24}, (_,h) => ({
+  const detail = Array.from({ length: 24 }, (_, h) => ({
     h,
-    co2:  Math.round(co2Base  + Math.sin(h/4)*60  + (((seed*h*7)%30)-15)),
-    pm25: +(pm25Base + Math.sin(h/3)*4   + (((seed*h*3)%6)-3)).toFixed(1),
+    co2: Math.round(
+      co2Base + Math.sin(h / 4) * 60 + (((seed * h * 7) % 30) - 15),
+    ),
+    pm25: +(
+      pm25Base +
+      Math.sin(h / 3) * 4 +
+      (((seed * h * 3) % 6) - 3)
+    ).toFixed(1),
   }));
-  const maxCo2 = Math.max(...detail.map(d=>d.co2));
-  const minCo2 = Math.min(...detail.map(d=>d.co2));
-  const avgCo2 = Math.round(detail.reduce((a,b)=>a+b.co2,0)/24);
+  const maxCo2 = Math.max(...detail.map((d) => d.co2));
+  const minCo2 = Math.min(...detail.map((d) => d.co2));
+  const avgCo2 = Math.round(detail.reduce((a, b) => a + b.co2, 0) / 24);
   return (
     <>
-      <div style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,marginBottom:6,letterSpacing:'0.1em'}}>CO₂ · 24h (daily avg estimate)</div>
-      <div style={{display:'flex',alignItems:'flex-end',gap:1.5,height:40,marginBottom:6}}>
-        {detail.map((d,i)=>{
-          const hPx=Math.max(2,((d.co2-minCo2)/(maxCo2-minCo2||1))*36);
-          const over=d.co2>=1000;
-          return <div key={i} title={`${d.h}:00 — ${d.co2} ppm`} style={{flex:1,height:hPx,borderRadius:'2px 2px 0 0',background:over?'#c02828':d.co2>=800?'#c9941a':'#5a8f3c',opacity:0.75}}/>;
+      <div
+        style={{
+          fontFamily: "'DM Mono',monospace",
+          fontSize: 8,
+          color: C.muted,
+          marginBottom: 6,
+          letterSpacing: "0.1em",
+        }}
+      >
+        CO₂ · 24h (daily avg estimate)
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: 1.5,
+          height: 40,
+          marginBottom: 6,
+        }}
+      >
+        {detail.map((d, i) => {
+          const hPx = Math.max(
+            2,
+            ((d.co2 - minCo2) / (maxCo2 - minCo2 || 1)) * 36,
+          );
+          const over = d.co2 >= 1000;
+          return (
+            <div
+              key={i}
+              title={`${d.h}:00 — ${d.co2} ppm`}
+              style={{
+                flex: 1,
+                height: hPx,
+                borderRadius: "2px 2px 0 0",
+                background: over
+                  ? "#c02828"
+                  : d.co2 >= 800
+                    ? "#c9941a"
+                    : "#5a8f3c",
+                opacity: 0.75,
+              }}
+            />
+          );
         })}
       </div>
-      <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>12am</span>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>12pm</span>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>11pm</span>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 10,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 7,
+            color: C.muted,
+          }}
+        >
+          12am
+        </span>
+        <span
+          style={{
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 7,
+            color: C.muted,
+          }}
+        >
+          12pm
+        </span>
+        <span
+          style={{
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 7,
+            color: C.muted,
+          }}
+        >
+          11pm
+        </span>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
+      <div
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}
+      >
         {[
-          {l:'AVG CO₂',  v:`${avgCo2} ppm`, c:'#5a8f3c'},
-          {l:'PEAK CO₂', v:`${maxCo2} ppm`, c:maxCo2>=1000?'#c02828':'#c9941a'},
-          {l:'LOW CO₂',  v:`${minCo2} ppm`, c:'#5a8f3c'},
-        ].map(s=>(
-          <div key={s.l} style={{background:C.surfaceAlt,borderRadius:10,padding:'8px 8px',textAlign:'center'}}>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,marginBottom:3,letterSpacing:'0.08em'}}>{s.l}</div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:s.c}}>{s.v}</div>
+          { l: "AVG CO₂", v: `${avgCo2} ppm`, c: "#5a8f3c" },
+          {
+            l: "PEAK CO₂",
+            v: `${maxCo2} ppm`,
+            c: maxCo2 >= 1000 ? "#c02828" : "#c9941a",
+          },
+          { l: "LOW CO₂", v: `${minCo2} ppm`, c: "#5a8f3c" },
+        ].map((s) => (
+          <div
+            key={s.l}
+            style={{
+              background: C.surfaceAlt,
+              borderRadius: 10,
+              padding: "8px 8px",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 7,
+                color: C.muted,
+                marginBottom: 3,
+                letterSpacing: "0.08em",
+              }}
+            >
+              {s.l}
+            </div>
+            <div
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 10,
+                color: s.c,
+              }}
+            >
+              {s.v}
+            </div>
           </div>
         ))}
       </div>
@@ -570,53 +1582,116 @@ function NoDataDayContent({day}) {
   );
 }
 
-function MonthHeatmap({monthData}) {
-  const [tooltip,  setTooltip]  = useState(null);
+function MonthHeatmap({ monthData }) {
+  const [tooltip, setTooltip] = useState(null);
   const [selected, setSelected] = useState(null);
 
   const weeks = [];
   let week = [];
   const firstDay = monthData.length ? monthData[0].date.getDay() : 0;
   for (let i = 0; i < firstDay; i++) week.push(null);
-  monthData.forEach(d => {
+  monthData.forEach((d) => {
     week.push(d);
-    if (week.length === 7) { weeks.push(week); week = []; }
+    if (week.length === 7) {
+      weeks.push(week);
+      week = [];
+    }
   });
-  if (week.length) { while (week.length < 7) week.push(null); weeks.push(week); }
+  if (week.length) {
+    while (week.length < 7) week.push(null);
+    weeks.push(week);
+  }
 
-  const DAY_LABELS = ['S','M','T','W','T','F','S'];
+  const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
   const now = new Date();
 
   return (
-    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px',boxShadow:C.shadow,position:'relative'}}>
-      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:13,color:C.text,fontWeight:500,marginBottom:4}}>Monthly Air Quality</div>
-      <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,marginBottom:14,letterSpacing:'0.08em'}}>Daily score · click a day to expand</div>
+    <div
+      style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 22,
+        padding: "20px",
+        boxShadow: C.shadow,
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "'Space Grotesk',sans-serif",
+          fontSize: 13,
+          color: C.text,
+          fontWeight: 500,
+          marginBottom: 4,
+        }}
+      >
+        Monthly Air Quality
+      </div>
+      <div
+        style={{
+          fontFamily: "'DM Mono',monospace",
+          fontSize: 9,
+          color: C.muted,
+          marginBottom: 14,
+          letterSpacing: "0.08em",
+        }}
+      >
+        Daily score · click a day to expand
+      </div>
       {/* Day-of-week headers — flex:1 so they scale with container width */}
-      <div style={{display:'flex',gap:3,marginBottom:4}}>
-        {DAY_LABELS.map((l,i)=>(
-          <div key={i} style={{flex:1,textAlign:'center',fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>{l}</div>
+      <div style={{ display: "flex", gap: 3, marginBottom: 4 }}>
+        {DAY_LABELS.map((l, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 8,
+              color: C.muted,
+            }}
+          >
+            {l}
+          </div>
         ))}
       </div>
-      <div style={{display:'flex',flexDirection:'column',gap:3}}>
-        {weeks.map((wk,wi)=>(
-          <div key={wi} style={{display:'flex',gap:3}}>
-            {wk.map((d,di)=>{
-              if (!d) return <div key={di} style={{flex:1,aspectRatio:'1'}}/>;
-              const isToday    = d.date.toDateString()===now.toDateString();
-              const isSelected = selected && selected.date.toDateString()===d.date.toDateString();
-              const color = d.future ? 'rgba(80,60,30,0.04)' : scoreToColor(d.score);
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {weeks.map((wk, wi) => (
+          <div key={wi} style={{ display: "flex", gap: 3 }}>
+            {wk.map((d, di) => {
+              if (!d)
+                return <div key={di} style={{ flex: 1, aspectRatio: "1" }} />;
+              const isToday = d.date.toDateString() === now.toDateString();
+              const isSelected =
+                selected &&
+                selected.date.toDateString() === d.date.toDateString();
+              const color = d.future
+                ? "rgba(80,60,30,0.04)"
+                : scoreToColor(d.score);
               return (
-                <div key={di}
-                  onMouseEnter={()=>!d.future&&setTooltip(d)}
-                  onMouseLeave={()=>setTooltip(null)}
-                  onClick={()=>{ if(d.future) return; setSelected(isSelected?null:d); setTooltip(null); }}
+                <div
+                  key={di}
+                  onMouseEnter={() => !d.future && setTooltip(d)}
+                  onMouseLeave={() => setTooltip(null)}
+                  onClick={() => {
+                    if (d.future) return;
+                    setSelected(isSelected ? null : d);
+                    setTooltip(null);
+                  }}
                   style={{
-                    flex:1, aspectRatio:'1', borderRadius:5, background:color,
-                    border:isSelected?`2px solid ${C.text}`:isToday?`2px solid ${C.textMid}`:'2px solid transparent',
-                    cursor:d.future?'default':'pointer',
-                    transform:isSelected?'scale(1.15)':'scale(1)',
-                    transition:'transform 0.15s, border 0.15s',
-                    boxShadow:isSelected?`0 2px 8px ${color}80`:'none',
+                    flex: 1,
+                    aspectRatio: "1",
+                    borderRadius: 5,
+                    background: color,
+                    border: isSelected
+                      ? `2px solid ${C.text}`
+                      : isToday
+                        ? `2px solid ${C.textMid}`
+                        : "2px solid transparent",
+                    cursor: d.future ? "default" : "pointer",
+                    transform: isSelected ? "scale(1.15)" : "scale(1)",
+                    transition: "transform 0.15s, border 0.15s",
+                    boxShadow: isSelected ? `0 2px 8px ${color}80` : "none",
                   }}
                 />
               );
@@ -625,121 +1700,372 @@ function MonthHeatmap({monthData}) {
         ))}
       </div>
       {tooltip && !selected && (
-        <div className="fade-in" style={{
-          marginTop:10,background:C.text,color:'#fff',
-          fontFamily:"'DM Mono',monospace",fontSize:9,padding:'6px 10px',borderRadius:8,
-          textAlign:'center',letterSpacing:'0.06em',
-        }}>
-          {tooltip.date.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'})} · Score {tooltip.score ?? 'no data'}
+        <div
+          className="fade-in"
+          style={{
+            marginTop: 10,
+            background: C.text,
+            color: "#fff",
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 9,
+            padding: "6px 10px",
+            borderRadius: 8,
+            textAlign: "center",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {tooltip.date.toLocaleDateString("en", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })}{" "}
+          · Score {tooltip.score ?? "no data"}
         </div>
       )}
-      <div style={{display:'flex',alignItems:'center',gap:6,marginTop:14}}>
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>Poor</span>
-        {['#c02828','#e07070','#c9941a','#7ec87e','#4a9e4a'].map(c=>(
-          <div key={c} style={{width:14,height:14,borderRadius:3,background:c}}/>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 14 }}
+      >
+        <span
+          style={{
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 8,
+            color: C.muted,
+          }}
+        >
+          Poor
+        </span>
+        {["#c02828", "#e07070", "#c9941a", "#7ec87e", "#4a9e4a"].map((c) => (
+          <div
+            key={c}
+            style={{ width: 14, height: 14, borderRadius: 3, background: c }}
+          />
         ))}
-        <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted}}>Good</span>
+        <span
+          style={{
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 8,
+            color: C.muted,
+          }}
+        >
+          Good
+        </span>
       </div>
-      {selected && <DayDetailPanel day={selected} onClose={()=>setSelected(null)}/>}
+      {selected && (
+        <DayDetailPanel day={selected} onClose={() => setSelected(null)} />
+      )}
     </div>
   );
 }
 
 // Fix: show "Waiting for sensor data" when no real hourly data yet
-function HourlyTrends({hourlyData, hasRealData}) {
-  const [metric, setMetric] = useState('co2');
+function HourlyTrends({ hourlyData, hasRealData }) {
+  const [metric, setMetric] = useState("co2");
   const metricCfg = {
-    co2:  {label:'CO₂',  unit:'ppm',   color:'#5a8f3c', min:380, max:750},
-    pm25: {label:'PM2.5',unit:'µg/m³', color:'#7c6bb0', min:4,   max:26 },
-    temp: {label:'Temp', unit:'°C',    color:'#b07030', min:15,  max:24 },
-    hum:  {label:'Hum',  unit:'%RH',   color:'#3a7a9a', min:40,  max:65 },
+    co2: { label: "CO₂", unit: "ppm", color: "#5a8f3c", min: 380, max: 750 },
+    pm25: { label: "PM2.5", unit: "µg/m³", color: "#7c6bb0", min: 4, max: 26 },
+    temp: { label: "Temp", unit: "°C", color: "#b07030", min: 15, max: 24 },
+    hum: { label: "Hum", unit: "%RH", color: "#3a7a9a", min: 40, max: 65 },
   };
   const cfg = metricCfg[metric];
-  const vals = hourlyData.map(h=>h[metric]);
-  const mn=Math.min(...vals.filter(v=>v!=null)), mx=Math.max(...vals.filter(v=>v!=null)), rng=mx-mn||1;
-  const barH=80;
-  const nowHour=new Date().getHours();
+  const vals = hourlyData.map((h) => h[metric]);
+  const mn = Math.min(...vals.filter((v) => v != null)),
+    mx = Math.max(...vals.filter((v) => v != null)),
+    rng = mx - mn || 1;
+  const barH = 80;
+  const nowHour = new Date().getHours();
 
   return (
-    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'20px 20px',boxShadow:C.shadow,display:'flex',flexDirection:'column',gap:12}}>
-      <div style={{display:'flex',flexDirection:'column',gap:8}}>
+    <div
+      style={{
+        background: C.surface,
+        border: `1px solid ${C.border}`,
+        borderRadius: 22,
+        padding: "20px 20px",
+        boxShadow: C.shadow,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:13,color:C.text,fontWeight:500,marginBottom:2}}>Time of Day</div>
-          <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.08em'}}>Hourly avg · today</div>
+          <div
+            style={{
+              fontFamily: "'Space Grotesk',sans-serif",
+              fontSize: 13,
+              color: C.text,
+              fontWeight: 500,
+              marginBottom: 2,
+            }}
+          >
+            Time of Day
+          </div>
+          <div
+            style={{
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 9,
+              color: C.muted,
+              letterSpacing: "0.08em",
+            }}
+          >
+            Hourly avg · today
+          </div>
         </div>
-        <div style={{display:'flex',gap:3,background:C.surfaceAlt,border:`1px solid ${C.border}`,borderRadius:10,padding:3}}>
-          {Object.entries(metricCfg).map(([k,v])=>{
-            const act=metric===k;
+        <div
+          style={{
+            display: "flex",
+            gap: 3,
+            background: C.surfaceAlt,
+            border: `1px solid ${C.border}`,
+            borderRadius: 10,
+            padding: 3,
+          }}
+        >
+          {Object.entries(metricCfg).map(([k, v]) => {
+            const act = metric === k;
             return (
-              <button key={k} onClick={()=>setMetric(k)} style={{
-                flex:1,padding:'4px 0',border:'none',cursor:'pointer',borderRadius:7,outline:'none',
-                background:act?C.surface:'transparent',color:act?v.color:C.muted,
-                fontFamily:"'DM Mono',monospace",fontSize:8,letterSpacing:'0.06em',
-                boxShadow:act?C.shadow:'none',transition:'all 0.15s',
-              }}>{v.label}</button>
+              <button
+                key={k}
+                onClick={() => setMetric(k)}
+                style={{
+                  flex: 1,
+                  padding: "4px 0",
+                  border: "none",
+                  cursor: "pointer",
+                  borderRadius: 7,
+                  outline: "none",
+                  background: act ? C.surface : "transparent",
+                  color: act ? v.color : C.muted,
+                  fontFamily: "'DM Mono',monospace",
+                  fontSize: 8,
+                  letterSpacing: "0.06em",
+                  boxShadow: act ? C.shadow : "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                {v.label}
+              </button>
             );
           })}
         </div>
       </div>
 
       {!hasRealData ? (
-        <div style={{height:barH+40,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8}}>
-          <div style={{width:36,height:36,borderRadius:'50%',background:'rgba(80,60,30,0.06)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div
+          style={{
+            height: barH + 40,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "rgba(80,60,30,0.06)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke={C.muted} strokeWidth="1.5"/>
-              <path d="M12 6v6l4 2" stroke={C.muted} strokeWidth="1.5" strokeLinecap="round"/>
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke={C.muted}
+                strokeWidth="1.5"
+              />
+              <path
+                d="M12 6v6l4 2"
+                stroke={C.muted}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.08em',textAlign:'center'}}>Waiting for sensor data…</span>
-          <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,opacity:0.6}}>Chart fills once ESP32 connects</span>
+          <span
+            style={{
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 9,
+              color: C.muted,
+              letterSpacing: "0.08em",
+              textAlign: "center",
+            }}
+          >
+            Waiting for sensor data…
+          </span>
+          <span
+            style={{
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 8,
+              color: C.muted,
+              opacity: 0.6,
+            }}
+          >
+            Chart fills once ESP32 connects
+          </span>
         </div>
       ) : (
         <>
-          <div style={{display:'flex',alignItems:'flex-end',gap:2,height:barH,position:'relative'}}>
-            {hourlyData.map((h,i)=>{
-              const v=h[metric];
-              const hPx=v!=null ? Math.max(4,((v-mn)/rng)*(barH-8)) : 2;
-              const isNow=h.hour===nowHour;
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: 2,
+              height: barH,
+              position: "relative",
+            }}
+          >
+            {hourlyData.map((h, i) => {
+              const v = h[metric];
+              const hPx =
+                v != null ? Math.max(4, ((v - mn) / rng) * (barH - 8)) : 2;
+              const isNow = h.hour === nowHour;
               return (
-                <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',height:'100%',position:'relative',cursor:'default'}}>
-                  <div title={`${h.hour}:00 — ${v!=null?`${v} ${cfg.unit}`:'no data'}`} style={{
-                    width:'100%',height:hPx,borderRadius:'3px 3px 0 0',
-                    background:isNow?cfg.color:v!=null?cfg.color+'80':'rgba(80,60,30,0.08)',
-                    border:isNow?`1.5px solid ${cfg.color}`:'none',
-                    transition:'height 0.3s ease',boxSizing:'border-box',
-                  }}/>
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    height: "100%",
+                    position: "relative",
+                    cursor: "default",
+                  }}
+                >
+                  <div
+                    title={`${h.hour}:00 — ${v != null ? `${v} ${cfg.unit}` : "no data"}`}
+                    style={{
+                      width: "100%",
+                      height: hPx,
+                      borderRadius: "3px 3px 0 0",
+                      background: isNow
+                        ? cfg.color
+                        : v != null
+                          ? cfg.color + "80"
+                          : "rgba(80,60,30,0.08)",
+                      border: isNow ? `1.5px solid ${cfg.color}` : "none",
+                      transition: "height 0.3s ease",
+                      boxSizing: "border-box",
+                    }}
+                  />
                 </div>
               );
             })}
           </div>
 
-          <div style={{display:'flex',justifyContent:'space-between',marginTop:-4}}>
-            {[0,4,8,12,16,20,23].map(h=>(
-              <span key={h} style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:h===nowHour?cfg.color:C.muted}}>
-                {h===0?'12a':h<12?`${h}a`:h===12?'12p':`${h-12}p`}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: -4,
+            }}
+          >
+            {[0, 4, 8, 12, 16, 20, 23].map((h) => (
+              <span
+                key={h}
+                style={{
+                  fontFamily: "'DM Mono',monospace",
+                  fontSize: 8,
+                  color: h === nowHour ? cfg.color : C.muted,
+                }}
+              >
+                {h === 0
+                  ? "12a"
+                  : h < 12
+                    ? `${h}a`
+                    : h === 12
+                      ? "12p"
+                      : `${h - 12}p`}
               </span>
             ))}
           </div>
 
           {(() => {
-            const validVals = vals.filter(v=>v!=null);
+            const validVals = vals.filter((v) => v != null);
             if (!validVals.length) return null;
-            const peakIdx=vals.indexOf(Math.max(...validVals));
-            const peakH=hourlyData[peakIdx]?.hour ?? 0;
-            const peakV=vals[peakIdx];
-            const label=peakH<12?`${peakH}am`:peakH===12?'12pm':`${peakH-12}pm`;
+            const peakIdx = vals.indexOf(Math.max(...validVals));
+            const peakH = hourlyData[peakIdx]?.hour ?? 0;
+            const peakV = vals[peakIdx];
+            const label =
+              peakH < 12
+                ? `${peakH}am`
+                : peakH === 12
+                  ? "12pm"
+                  : `${peakH - 12}pm`;
             return (
-              <div style={{display:'flex',justifyContent:'space-between',padding:'8px 12px',borderRadius:10,background:cfg.color+'10',border:`1px solid ${cfg.color}22`}}>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>Peak: <span style={{color:cfg.color}}>{label}</span></span>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:cfg.color}}>{peakV} {cfg.unit}</span>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  background: cfg.color + "10",
+                  border: `1px solid ${cfg.color}22`,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 9,
+                    color: C.muted,
+                  }}
+                >
+                  Peak: <span style={{ color: cfg.color }}>{label}</span>
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 9,
+                    color: cfg.color,
+                  }}
+                >
+                  {peakV} {cfg.unit}
+                </span>
               </div>
             );
           })()}
 
-          <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 12px',borderRadius:10,background:'rgba(80,60,30,0.04)',border:`1px solid ${C.border}`}}>
-            <div style={{width:7,height:7,borderRadius:'50%',background:cfg.color,flexShrink:0}}/>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
-              Now ({nowHour}:00): <span style={{color:cfg.color}}>{vals[nowHour]!=null ? `${vals[nowHour]} ${cfg.unit}` : 'no data'}</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 12px",
+              borderRadius: 10,
+              background: "rgba(80,60,30,0.04)",
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <div
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: cfg.color,
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+              }}
+            >
+              Now ({nowHour}:00):{" "}
+              <span style={{ color: cfg.color }}>
+                {vals[nowHour] != null
+                  ? `${vals[nowHour]} ${cfg.unit}`
+                  : "no data"}
+              </span>
             </span>
           </div>
         </>
@@ -748,100 +2074,366 @@ function HourlyTrends({hourlyData, hasRealData}) {
   );
 }
 
-function History({data, monthData, hourlyData, hasRealHourly}) {
+function History({ data, monthData, hourlyData, hasRealHourly }) {
   const [range, setRange] = useState(HIST);
-  const [activeCharts, setActiveCharts] = useState(['CO₂','PM2.5','Temperature','Humidity']);
+  const [activeCharts, setActiveCharts] = useState([
+    "CO₂",
+    "PM2.5",
+    "Temperature",
+    "Humidity",
+  ]);
   const mobile = useIsMobile();
 
   const allCharts = [
-    {label:'CO₂',        unit:'ppm',   val:data.co2,  hist:data.co2H,  color:'#5a8f3c', min:300, max:1300, thresh:1000, tl:'1000 ppm'},
-    {label:'PM2.5',      unit:'µg/m³', val:data.pm25, hist:data.pm25H, color:'#7c6bb0', min:0,   max:100,  thresh:55,   tl:'55 µg/m³'},
-    {label:'Temperature',unit:'°C',    val:data.temp, hist:data.tempH, color:'#b07030', min:10,  max:40,   thresh:28,   tl:'28°C'},
-    {label:'Humidity',   unit:'%RH',   val:data.hum,  hist:data.humH,  color:'#3a7a9a', min:10,  max:90,   thresh:70,   tl:'70%'},
+    {
+      label: "CO₂",
+      unit: "ppm",
+      val: data.co2,
+      hist: data.co2H,
+      color: "#5a8f3c",
+      min: 300,
+      max: 1300,
+      thresh: 1000,
+      tl: "1000 ppm",
+    },
+    {
+      label: "PM2.5",
+      unit: "µg/m³",
+      val: data.pm25,
+      hist: data.pm25H,
+      color: "#7c6bb0",
+      min: 0,
+      max: 100,
+      thresh: 55,
+      tl: "55 µg/m³",
+    },
+    {
+      label: "Temperature",
+      unit: "°C",
+      val: data.temp,
+      hist: data.tempH,
+      color: "#b07030",
+      min: 10,
+      max: 40,
+      thresh: 28,
+      tl: "28°C",
+    },
+    {
+      label: "Humidity",
+      unit: "%RH",
+      val: data.hum,
+      hist: data.humH,
+      color: "#3a7a9a",
+      min: 10,
+      max: 90,
+      thresh: 70,
+      tl: "70%",
+    },
   ];
 
-  const charts  = allCharts.filter(c=>activeCharts.includes(c.label));
-  const sliced  = charts.map(ch=>({...ch, hist:ch.hist.slice(-range)}));
-  const rangeSec = range >= HIST ? 'all data' : `~${range*5}s`;
+  const charts = allCharts.filter((c) => activeCharts.includes(c.label));
+  const sliced = charts.map((ch) => ({ ...ch, hist: ch.hist.slice(-range) }));
+  const rangeSec = range >= HIST ? "all data" : `~${range * 5}s`;
 
   const toggleChart = (label) => {
-    setActiveCharts(prev=>prev.includes(label)?(prev.length>1?prev.filter(l=>l!==label):prev):[...prev,label]);
+    setActiveCharts((prev) =>
+      prev.includes(label)
+        ? prev.length > 1
+          ? prev.filter((l) => l !== label)
+          : prev
+        : [...prev, label],
+    );
   };
 
   return (
-    <div className="panel-scroll slide-in" style={{flex:1,padding: mobile ? '12px' : '20px 24px',display:'flex',flexDirection: mobile ? 'column' : 'row',gap: mobile ? 12 : 18,alignItems:'flex-start',width:'100%',minHeight:0,overflowY:'auto',overflowX:'hidden'}}>
-
+    <div
+      className="panel-scroll slide-in"
+      style={{
+        flex: 1,
+        padding: mobile ? "12px" : "20px 24px",
+        display: "flex",
+        flexDirection: mobile ? "column" : "row",
+        gap: mobile ? 12 : 18,
+        alignItems: "flex-start",
+        width: "100%",
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
+    >
       {/* Calendar — full width on mobile, fixed sidebar on desktop */}
-      <div style={{width: mobile ? '100%' : 220,flexShrink:0,display:'flex',flexDirection:'column',gap:16,paddingTop: mobile ? 0 : 4}}>
-        <MonthHeatmap monthData={monthData}/>
+      <div
+        style={{
+          width: mobile ? "100%" : 220,
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          paddingTop: mobile ? 0 : 4,
+        }}
+      >
+        <MonthHeatmap monthData={monthData} />
       </div>
 
       {/* Center: Live charts */}
-      <div style={{flex:1,display:'flex',flexDirection:'column',gap: mobile ? 10 : 14,minWidth:0}}>
-        <div style={{display:'flex',flexDirection: mobile ? 'column' : 'row',justifyContent:'space-between',alignItems: mobile ? 'flex-start' : 'center',gap: mobile ? 8 : 0,flexShrink:0}}>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          gap: mobile ? 10 : 14,
+          minWidth: 0,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: mobile ? "column" : "row",
+            justifyContent: "space-between",
+            alignItems: mobile ? "flex-start" : "center",
+            gap: mobile ? 8 : 0,
+            flexShrink: 0,
+          }}
+        >
           <div>
-            <div style={{fontFamily:"'Instrument Serif',serif",fontSize: mobile ? 18 : 20,color:C.text,fontWeight:300}}>Sensor History</div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em',marginTop:2}}>Last {rangeSec} · 5s cadence</div>
+            <div
+              style={{
+                fontFamily: "'Instrument Serif',serif",
+                fontSize: mobile ? 18 : 20,
+                color: C.text,
+                fontWeight: 300,
+              }}
+            >
+              Sensor History
+            </div>
+            <div
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+                letterSpacing: "0.1em",
+                marginTop: 2,
+              }}
+            >
+              Last {rangeSec} · 5s cadence
+            </div>
           </div>
-          <div style={{display:'flex',gap:4,background:C.surfaceAlt,border:`1px solid ${C.border}`,borderRadius:12,padding:3}}>
-            {RANGE_OPTIONS.map(opt=>{
-              const active=range===opt.points;
+          <div
+            style={{
+              display: "flex",
+              gap: 4,
+              background: C.surfaceAlt,
+              border: `1px solid ${C.border}`,
+              borderRadius: 12,
+              padding: 3,
+            }}
+          >
+            {RANGE_OPTIONS.map((opt) => {
+              const active = range === opt.points;
               return (
-                <button key={opt.label} onClick={()=>setRange(opt.points)} style={{
-                  padding:'4px 12px',border:'none',cursor:'pointer',borderRadius:8,outline:'none',
-                  background:active?C.surface:'transparent',color:active?C.text:C.muted,
-                  fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.08em',
-                  boxShadow:active?C.shadow:'none',transition:'all 0.15s',fontWeight:active?500:400,
-                }}>{opt.label}</button>
+                <button
+                  key={opt.label}
+                  onClick={() => setRange(opt.points)}
+                  style={{
+                    padding: "4px 12px",
+                    border: "none",
+                    cursor: "pointer",
+                    borderRadius: 8,
+                    outline: "none",
+                    background: active ? C.surface : "transparent",
+                    color: active ? C.text : C.muted,
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 10,
+                    letterSpacing: "0.08em",
+                    boxShadow: active ? C.shadow : "none",
+                    transition: "all 0.15s",
+                    fontWeight: active ? 500 : 400,
+                  }}
+                >
+                  {opt.label}
+                </button>
               );
             })}
           </div>
         </div>
 
-        <div style={{display:'flex',gap:6,flexShrink:0,flexWrap:'wrap'}}>
-          {allCharts.map(ch=>{
-            const on=activeCharts.includes(ch.label);
+        <div
+          style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}
+        >
+          {allCharts.map((ch) => {
+            const on = activeCharts.includes(ch.label);
             return (
-              <button key={ch.label} onClick={()=>toggleChart(ch.label)} style={{
-                display:'flex',alignItems:'center',gap:5,padding:'4px 10px',
-                border:`1.5px solid ${on?ch.color:C.border}`,borderRadius:99,
-                background:on?ch.color+'12':'transparent',cursor:'pointer',transition:'all 0.15s',
-              }}>
-                <div style={{width:6,height:6,borderRadius:'50%',background:on?ch.color:C.muted}}/>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:on?ch.color:C.muted,letterSpacing:'0.08em'}}>{ch.label.toUpperCase()}</span>
+              <button
+                key={ch.label}
+                onClick={() => toggleChart(ch.label)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "4px 10px",
+                  border: `1.5px solid ${on ? ch.color : C.border}`,
+                  borderRadius: 99,
+                  background: on ? ch.color + "12" : "transparent",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: on ? ch.color : C.muted,
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 9,
+                    color: on ? ch.color : C.muted,
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {ch.label.toUpperCase()}
+                </span>
               </button>
             );
           })}
         </div>
 
-        {sliced.map(ch=>{
-          const dv=typeof ch.val==='number'&&ch.val%1!==0?ch.val.toFixed(1):ch.val;
-          const valid=ch.hist.filter(v=>v>0);
-          const hMin=valid.length?Math.min(...valid):'—', hMax=valid.length?Math.max(...valid):'—';
-          const avg=valid.length?(valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1):'—';
+        {sliced.map((ch) => {
+          const dv =
+            typeof ch.val === "number" && ch.val % 1 !== 0
+              ? ch.val.toFixed(1)
+              : ch.val;
+          const valid = ch.hist.filter((v) => v > 0);
+          const hMin = valid.length ? Math.min(...valid) : "—",
+            hMax = valid.length ? Math.max(...valid) : "—";
+          const avg = valid.length
+            ? (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1)
+            : "—";
           return (
-            <div key={ch.label} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:18,padding:'12px 14px',boxShadow:C.shadow,display:'flex',flexDirection:'column',gap:6,height: mobile ? 120 : 152}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
-                <div style={{display:'flex',alignItems:'center',gap:6}}>
-                  <div style={{width:7,height:7,borderRadius:'50%',background:ch.color,flexShrink:0}}/>
-                  <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.10em',textTransform:'uppercase'}}>{ch.label}</span>
-                  {!mobile && <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>{ch.unit}</span>}
+            <div
+              key={ch.label}
+              style={{
+                background: C.surface,
+                border: `1px solid ${C.border}`,
+                borderRadius: 18,
+                padding: "12px 14px",
+                boxShadow: C.shadow,
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                height: mobile ? 120 : 152,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: ch.color,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: "'DM Mono',monospace",
+                      fontSize: 9,
+                      color: C.muted,
+                      letterSpacing: "0.10em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {ch.label}
+                  </span>
+                  {!mobile && (
+                    <span
+                      style={{
+                        fontFamily: "'DM Mono',monospace",
+                        fontSize: 9,
+                        color: C.muted,
+                      }}
+                    >
+                      {ch.unit}
+                    </span>
+                  )}
                 </div>
-                <div style={{display:'flex',gap: mobile ? 10 : 16}}>
-                  {(mobile ? [{l:'NOW',v:`${dv||'—'}`},{l:'AVG',v:avg}] : [{l:'NOW',v:`${dv||'—'} ${ch.unit}`},{l:'MIN',v:hMin},{l:'MAX',v:hMax},{l:'AVG',v:avg}]).map(s=>(
-                    <div key={s.l} style={{textAlign:'right'}}>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted,letterSpacing:'0.1em'}}>{s.l}</div>
-                      <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:s.l==='NOW'?ch.color:C.textMid}}>{s.v}</div>
+                <div style={{ display: "flex", gap: mobile ? 10 : 16 }}>
+                  {(mobile
+                    ? [
+                        { l: "NOW", v: `${dv || "—"}` },
+                        { l: "AVG", v: avg },
+                      ]
+                    : [
+                        { l: "NOW", v: `${dv || "—"} ${ch.unit}` },
+                        { l: "MIN", v: hMin },
+                        { l: "MAX", v: hMax },
+                        { l: "AVG", v: avg },
+                      ]
+                  ).map((s) => (
+                    <div key={s.l} style={{ textAlign: "right" }}>
+                      <div
+                        style={{
+                          fontFamily: "'DM Mono',monospace",
+                          fontSize: 7,
+                          color: C.muted,
+                          letterSpacing: "0.1em",
+                        }}
+                      >
+                        {s.l}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "'DM Mono',monospace",
+                          fontSize: 10,
+                          color: s.l === "NOW" ? ch.color : C.textMid,
+                        }}
+                      >
+                        {s.v}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
-              <div style={{flex:1,minHeight:0}}>
-                <AutoChart data={ch.hist} color={ch.color} min={ch.min} max={ch.max} thresh={ch.thresh} thLabel={ch.tl}/>
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <AutoChart
+                  data={ch.hist}
+                  color={ch.color}
+                  min={ch.min}
+                  max={ch.max}
+                  thresh={ch.thresh}
+                  thLabel={ch.tl}
+                />
               </div>
-              <div style={{display:'flex',justifyContent:'space-between'}}>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>−{rangeSec}</span>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:7,color:C.muted}}>now</span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span
+                  style={{
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 7,
+                    color: C.muted,
+                  }}
+                >
+                  −{rangeSec}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 7,
+                    color: C.muted,
+                  }}
+                >
+                  now
+                </span>
               </div>
             </div>
           );
@@ -849,8 +2441,17 @@ function History({data, monthData, hourlyData, hasRealHourly}) {
       </div>
 
       {/* Hourly trends — full width on mobile, fixed sidebar on desktop */}
-      <div style={{width: mobile ? '100%' : 210,flexShrink:0,display:'flex',flexDirection:'column',gap:16,paddingTop: mobile ? 0 : 4}}>
-        <HourlyTrends hourlyData={hourlyData} hasRealData={hasRealHourly}/>
+      <div
+        style={{
+          width: mobile ? "100%" : 210,
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          paddingTop: mobile ? 0 : 4,
+        }}
+      >
+        <HourlyTrends hourlyData={hourlyData} hasRealData={hasRealHourly} />
       </div>
     </div>
   );
@@ -860,245 +2461,802 @@ function History({data, monthData, hourlyData, hasRealHourly}) {
 // CONTROLS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ThresholdSlider({value, onChange, min, max, step, color, unit}) {
-  const pct=((value-min)/(max-min))*100;
+function ThresholdSlider({ value, onChange, min, max, step, color, unit }) {
+  const pct = ((value - min) / (max - min)) * 100;
   return (
-    <div style={{position:'relative',paddingTop:28,marginBottom:4}}>
-      <div style={{
-        position:'absolute',top:0,left:`calc(${Math.min(94,Math.max(3,pct))}% - 22px)`,
-        transition:'left 0.1s ease',background:color,color:'#fff',
-        fontFamily:"'DM Mono',monospace",fontSize:10,fontWeight:500,
-        padding:'2px 8px',borderRadius:6,whiteSpace:'nowrap',letterSpacing:'0.04em',
-        boxShadow:'0 2px 6px rgba(0,0,0,0.15)',pointerEvents:'none',
-      }}>
-        {value}<span style={{fontSize:8,opacity:0.8,marginLeft:2}}>{unit}</span>
-        <div style={{position:'absolute',bottom:-5,left:'50%',transform:'translateX(-50%)',width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',borderTop:`5px solid ${color}`}}/>
+    <div style={{ position: "relative", paddingTop: 28, marginBottom: 4 }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: `calc(${Math.min(94, Math.max(3, pct))}% - 22px)`,
+          transition: "left 0.1s ease",
+          background: color,
+          color: "#fff",
+          fontFamily: "'DM Mono',monospace",
+          fontSize: 10,
+          fontWeight: 500,
+          padding: "2px 8px",
+          borderRadius: 6,
+          whiteSpace: "nowrap",
+          letterSpacing: "0.04em",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+          pointerEvents: "none",
+        }}
+      >
+        {value}
+        <span style={{ fontSize: 8, opacity: 0.8, marginLeft: 2 }}>{unit}</span>
+        <div
+          style={{
+            position: "absolute",
+            bottom: -5,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 0,
+            height: 0,
+            borderLeft: "5px solid transparent",
+            borderRight: "5px solid transparent",
+            borderTop: `5px solid ${color}`,
+          }}
+        />
       </div>
-      <input type="range" min={min} max={max} step={step} value={value}
-        style={{width:'100%',accentColor:color,background:`linear-gradient(90deg,${color} ${pct}%,rgba(80,60,30,0.15) ${pct}%)`}}
-        onChange={e=>onChange(+e.target.value)}
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        style={{
+          width: "100%",
+          accentColor: color,
+          background: `linear-gradient(90deg,${color} ${pct}%,rgba(80,60,30,0.15) ${pct}%)`,
+        }}
+        onChange={(e) => onChange(+e.target.value)}
       />
     </div>
   );
 }
 
-function Controls({data, co2T, pm25T, setCo2T, setPm25T, deviceState}) {
-  const [co2Draft,   setCo2Draft]   = useState(co2T);
-  const [pm25Draft,  setPm25Draft]  = useState(pm25T);
-  const [led,        setLed]        = useState('auto');
-  const [buzzer,     setBuzzer]     = useState(deviceState?.buzzer === 1);
-  const [log,        setLog]        = useState([{t:new Date().toLocaleTimeString(),msg:'Ready — listening for commands'}]);
+function Controls({ data, co2T, pm25T, setCo2T, setPm25T, deviceState }) {
+  const [co2Draft, setCo2Draft] = useState(co2T);
+  const [pm25Draft, setPm25Draft] = useState(pm25T);
+  const [led, setLed] = useState("auto");
+  const [buzzer, setBuzzer] = useState(deviceState?.buzzer === 1);
+  const [log, setLog] = useState([
+    {
+      t: new Date().toLocaleTimeString(),
+      msg: "Ready — listening for commands",
+    },
+  ]);
   const [co2Applied, setCo2Applied] = useState(false);
-  const [pm25Applied,setPm25Applied]= useState(false);
+  const [pm25Applied, setPm25Applied] = useState(false);
 
-  useEffect(()=>setCo2Draft(co2T),  [co2T]);
-  useEffect(()=>setPm25Draft(pm25T),[pm25T]);
-  useEffect(()=>setBuzzer(deviceState?.buzzer===1),[deviceState?.buzzer]);
+  useEffect(() => setCo2Draft(co2T), [co2T]);
+  useEffect(() => setPm25Draft(pm25T), [pm25T]);
+  useEffect(() => setBuzzer(deviceState?.buzzer === 1), [deviceState?.buzzer]);
 
-  useEffect(()=>{
-    const poll=async()=>{
+  useEffect(() => {
+    const poll = async () => {
       try {
-        const s=await apiFetch('/api/status');
-        if(s.log && s.log.length) setLog(s.log.map(e=>({t:e.ts,msg:e.msg})));
-      } catch(e){}
+        const s = await apiFetch("/api/status");
+        if (s.log && s.log.length)
+          setLog(s.log.map((e) => ({ t: e.ts, msg: e.msg })));
+      } catch (e) {}
     };
     poll();
-    const t=setInterval(poll,5000);
-    return()=>clearInterval(t);
-  },[]);
+    const t = setInterval(poll, 5000);
+    return () => clearInterval(t);
+  }, []);
 
-  const push = msg=>setLog(p=>[{t:new Date().toLocaleTimeString(),msg},...p.slice(0,19)]);
+  const push = (msg) =>
+    setLog((p) => [
+      { t: new Date().toLocaleTimeString(), msg },
+      ...p.slice(0, 19),
+    ]);
 
-  const applyCo2=async()=>{
+  const applyCo2 = async () => {
     setCo2T(co2Draft);
-    await apiPost('/api/control',{co2_threshold:co2Draft}).catch(()=>{});
+    await apiPost("/api/control", { co2_threshold: co2Draft }).catch(() => {});
     push(`CO₂ threshold applied → ${co2Draft} ppm`);
     setCo2Applied(true);
-    setTimeout(()=>setCo2Applied(false),2000);
+    setTimeout(() => setCo2Applied(false), 2000);
   };
-  const applyPm25=async()=>{
+  const applyPm25 = async () => {
     setPm25T(pm25Draft);
-    await apiPost('/api/control',{pm25_threshold:pm25Draft}).catch(()=>{});
+    await apiPost("/api/control", { pm25_threshold: pm25Draft }).catch(
+      () => {},
+    );
     push(`PM2.5 threshold applied → ${pm25Draft} µg/m³`);
     setPm25Applied(true);
-    setTimeout(()=>setPm25Applied(false),2000);
+    setTimeout(() => setPm25Applied(false), 2000);
   };
 
-  const setLedMode=async(opt)=>{
+  const setLedMode = async (opt) => {
     setLed(opt);
     push(`LED override → ${opt.toUpperCase()}`);
-    if(opt==='on')  await apiPost('/api/control',{led:1}).catch(()=>{});
-    if(opt==='off') await apiPost('/api/control',{led:0}).catch(()=>{});
+    if (opt === "on") await apiPost("/api/control", { led: 1 }).catch(() => {});
+    if (opt === "off")
+      await apiPost("/api/control", { led: 0 }).catch(() => {});
   };
-  const toggleBuzzer=async()=>{
-    const next=!buzzer;
+  const toggleBuzzer = async () => {
+    const next = !buzzer;
     setBuzzer(next);
-    await apiPost('/api/control',{buzzer:next?1:0}).catch(()=>{});
-    push(`Buzzer → ${next?'FORCED ON':'returned to auto'}`);
+    await apiPost("/api/control", { buzzer: next ? 1 : 0 }).catch(() => {});
+    push(`Buzzer → ${next ? "FORCED ON" : "returned to auto"}`);
   };
 
-  const level=getLevel(data.co2,data.pm25);
-  const ledActive=led==='on'||(led==='auto'&&level==='danger');
-  const co2Changed=co2Draft!==co2T, pm25Changed=pm25Draft!==pm25T;
+  const level = getLevel(data.co2, data.pm25);
+  const ledActive = led === "on" || (led === "auto" && level === "alarm");
+  const co2Changed = co2Draft !== co2T,
+    pm25Changed = pm25Draft !== pm25T;
   const mobile = useIsMobile();
 
   return (
-    <div className="panel-scroll slide-in" style={{flex:1,padding: mobile ? '16px' : '28px 32px',maxWidth:800,margin:'0 auto',width:'100%'}}>
-      <div style={{marginBottom: mobile ? 16 : 24}}>
-        <div style={{fontFamily:"'Instrument Serif',serif",fontSize: mobile ? 20 : 22,color:C.text,fontWeight:300,marginBottom:4}}>Device Controls</div>
-        <div style={{fontFamily:"'DM Mono',monospace",fontSize:10,color:C.muted,letterSpacing:'0.1em'}}>Commands sent to ESP32 via backend GET endpoint</div>
+    <div
+      className="panel-scroll slide-in"
+      style={{
+        flex: 1,
+        padding: mobile ? "16px" : "28px 32px",
+        maxWidth: 800,
+        margin: "0 auto",
+        width: "100%",
+      }}
+    >
+      <div style={{ marginBottom: mobile ? 16 : 24 }}>
+        <div
+          style={{
+            fontFamily: "'Instrument Serif',serif",
+            fontSize: mobile ? 20 : 22,
+            color: C.text,
+            fontWeight: 300,
+            marginBottom: 4,
+          }}
+        >
+          Device Controls
+        </div>
+        <div
+          style={{
+            fontFamily: "'DM Mono',monospace",
+            fontSize: 10,
+            color: C.muted,
+            letterSpacing: "0.1em",
+          }}
+        >
+          Commands sent to ESP32 via backend GET endpoint
+        </div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns: mobile ? '1fr' : '1fr 1fr',gap: mobile ? 12 : 16}}>
-
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: mobile ? "1fr" : "1fr 1fr",
+          gap: mobile ? 12 : 16,
+        }}
+      >
         {/* LED Override */}
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
-            <div style={{width:28,height:28,borderRadius:'50%',background:ledActive?'#c02828':'rgba(80,60,30,0.1)',boxShadow:ledActive?'0 0 12px #c0282860':'none',transition:'all 0.4s ease',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <div style={{width:10,height:10,borderRadius:'50%',background:ledActive?'#ff8080':'rgba(80,60,30,0.3)'}}/>
+        <div
+          style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 22,
+            padding: "22px 24px",
+            boxShadow: C.shadow,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 18,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: ledActive ? "#c02828" : "rgba(80,60,30,0.1)",
+                boxShadow: ledActive ? "0 0 12px #c0282860" : "none",
+                transition: "all 0.4s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: ledActive ? "#ff8080" : "rgba(80,60,30,0.3)",
+                }}
+              />
             </div>
             <div>
-              <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500}}>Red LED</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em',marginTop:1}}>GPIO 23 · OVERRIDE</div>
+              <div
+                style={{
+                  fontFamily: "'Space Grotesk',sans-serif",
+                  fontSize: 14,
+                  color: C.text,
+                  fontWeight: 500,
+                }}
+              >
+                Red LED
+              </div>
+              <div
+                style={{
+                  fontFamily: "'DM Mono',monospace",
+                  fontSize: 9,
+                  color: C.muted,
+                  letterSpacing: "0.1em",
+                  marginTop: 1,
+                }}
+              >
+                GPIO 23 · OVERRIDE
+              </div>
             </div>
           </div>
-          <div style={{display:'flex',gap:8}}>
-            {['auto','on','off'].map(opt=>{
-              const active=led===opt;
+          <div style={{ display: "flex", gap: 8 }}>
+            {["auto", "on", "off"].map((opt) => {
+              const active = led === opt;
               return (
-                <button key={opt} onClick={()=>setLedMode(opt)} style={{
-                  flex:1,padding:'8px 0',border:`1.5px solid ${active?C.text:C.border}`,
-                  borderRadius:10,background:active?C.text:'transparent',
-                  color:active?C.bg:C.muted,cursor:'pointer',
-                  fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.08em',transition:'all 0.15s',
-                }}>{opt.toUpperCase()}</button>
+                <button
+                  key={opt}
+                  onClick={() => setLedMode(opt)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 0",
+                    border: `1.5px solid ${active ? C.text : C.border}`,
+                    borderRadius: 10,
+                    background: active ? C.text : "transparent",
+                    color: active ? C.bg : C.muted,
+                    cursor: "pointer",
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 10,
+                    letterSpacing: "0.08em",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {opt.toUpperCase()}
+                </button>
               );
             })}
           </div>
-          <div style={{marginTop:12,fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
-            Status: <span style={{color:ledActive?'#c02828':C.textMid}}>{ledActive?'ON':'OFF'}</span>
-            {led==='auto'&&<span style={{color:C.muted}}> (auto)</span>}
+          <div
+            style={{
+              marginTop: 12,
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 9,
+              color: C.muted,
+            }}
+          >
+            Status:{" "}
+            <span style={{ color: ledActive ? "#c02828" : C.textMid }}>
+              {ledActive ? "ON" : "OFF"}
+            </span>
+            {led === "auto" && <span style={{ color: C.muted }}> (auto)</span>}
           </div>
         </div>
 
         {/* Buzzer */}
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
-            <div style={{width:28,height:28,borderRadius:8,background:buzzer?'#c02828':'rgba(80,60,30,0.1)',transition:'all 0.4s ease',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div
+          style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 22,
+            padding: "22px 24px",
+            boxShadow: C.shadow,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 18,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: buzzer ? "#c02828" : "rgba(80,60,30,0.1)",
+                transition: "all 0.4s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M11 5L6 9H2v6h4l5 4V5z" stroke={buzzer?'#fff':'rgba(80,60,30,0.4)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke={buzzer?'#fff':'rgba(80,60,30,0.4)'} strokeWidth="1.8" strokeLinecap="round"/>
+                <path
+                  d="M11 5L6 9H2v6h4l5 4V5z"
+                  stroke={buzzer ? "#fff" : "rgba(80,60,30,0.4)"}
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"
+                  stroke={buzzer ? "#fff" : "rgba(80,60,30,0.4)"}
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
               </svg>
             </div>
             <div>
-              <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500}}>Buzzer</div>
-              <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em',marginTop:1}}>GPIO 15 · 1000 Hz</div>
+              <div
+                style={{
+                  fontFamily: "'Space Grotesk',sans-serif",
+                  fontSize: 14,
+                  color: C.text,
+                  fontWeight: 500,
+                }}
+              >
+                Buzzer
+              </div>
+              <div
+                style={{
+                  fontFamily: "'DM Mono',monospace",
+                  fontSize: 9,
+                  color: C.muted,
+                  letterSpacing: "0.1em",
+                  marginTop: 1,
+                }}
+              >
+                GPIO 15 · 1000 Hz
+              </div>
             </div>
           </div>
-          <button onClick={toggleBuzzer} style={{
-            width:'100%',padding:'10px 0',
-            border:`1.5px solid ${buzzer?'#c02828':C.border}`,
-            borderRadius:10,background:buzzer?'#c02828':'transparent',
-            color:buzzer?'#fff':C.muted,cursor:'pointer',
-            fontFamily:"'DM Mono',monospace",fontSize:11,letterSpacing:'0.08em',transition:'all 0.2s',
-          }}>{buzzer?'◼  ACTIVE — click to silence':'▶  Force constant tone'}</button>
-          <div style={{marginTop:12,fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
-            Mode: <span style={{color:buzzer?'#c02828':C.textMid}}>{buzzer?'Forced on':'Auto (state machine)'}</span>
+          <button
+            onClick={toggleBuzzer}
+            style={{
+              width: "100%",
+              padding: "10px 0",
+              border: `1.5px solid ${buzzer ? "#c02828" : C.border}`,
+              borderRadius: 10,
+              background: buzzer ? "#c02828" : "transparent",
+              color: buzzer ? "#fff" : C.muted,
+              cursor: "pointer",
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 11,
+              letterSpacing: "0.08em",
+              transition: "all 0.2s",
+            }}
+          >
+            {buzzer ? "◼  ACTIVE — click to silence" : "▶  Force constant tone"}
+          </button>
+          <div
+            style={{
+              marginTop: 12,
+              fontFamily: "'DM Mono',monospace",
+              fontSize: 9,
+              color: C.muted,
+            }}
+          >
+            Mode:{" "}
+            <span style={{ color: buzzer ? "#c02828" : C.textMid }}>
+              {buzzer ? "Forced on" : "Auto (state machine)"}
+            </span>
           </div>
         </div>
 
         {/* CO2 Threshold */}
-        <div style={{background:C.surface,border:`1px solid ${co2Changed?'#5a8f3c44':C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow,transition:'border-color 0.2s'}}>
-          <div style={{marginBottom:14}}>
-            <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500,marginBottom:2}}>CO₂ Alarm Threshold</div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em'}}>Triggers RED LED + buzzer</div>
+        <div
+          style={{
+            background: C.surface,
+            border: `1px solid ${co2Changed ? "#5a8f3c44" : C.border}`,
+            borderRadius: 22,
+            padding: "22px 24px",
+            boxShadow: C.shadow,
+            transition: "border-color 0.2s",
+          }}
+        >
+          <div style={{ marginBottom: 14 }}>
+            <div
+              style={{
+                fontFamily: "'Space Grotesk',sans-serif",
+                fontSize: 14,
+                color: C.text,
+                fontWeight: 500,
+                marginBottom: 2,
+              }}
+            >
+              CO₂ Alarm Threshold
+            </div>
+            <div
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+                letterSpacing: "0.1em",
+              }}
+            >
+              Triggers RED LED + buzzer
+            </div>
           </div>
-          <ThresholdSlider value={co2Draft} onChange={setCo2Draft} min={600} max={1200} step={50} color="#5a8f3c" unit="ppm"/>
-          <div style={{display:'flex',justifyContent:'space-between',marginTop:4,marginBottom:12}}>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>600 ppm</span>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>1200 ppm</span>
-          </div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
-              Active: <span style={{color:C.textMid}}>{co2T} ppm</span>
-              {co2Changed&&<span style={{color:'#5a8f3c',marginLeft:6}}>→ {co2Draft} ppm</span>}
+          <ThresholdSlider
+            value={co2Draft}
+            onChange={setCo2Draft}
+            min={600}
+            max={1200}
+            step={50}
+            color="#5a8f3c"
+            unit="ppm"
+          />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: 4,
+              marginBottom: 12,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+              }}
+            >
+              600 ppm
+            </span>
+            <span
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+              }}
+            >
+              1200 ppm
             </span>
           </div>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <div style={{flex:1,padding:'7px 12px',borderRadius:10,background:data.co2>=co2T?'rgba(192,40,40,0.08)':'rgba(74,158,74,0.07)',border:'1px solid '+(data.co2>=co2T?'rgba(192,40,40,0.2)':'rgba(74,158,74,0.15)'),fontFamily:"'DM Mono',monospace",fontSize:9,color:data.co2>=co2T?'#c02828':'#4a9e4a'}}>
-              {data.co2||'—'} ppm — {data.co2>0?(data.co2>=co2T?'⚠ ALARM':'✓ OK'):'waiting'}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+              }}
+            >
+              Active: <span style={{ color: C.textMid }}>{co2T} ppm</span>
+              {co2Changed && (
+                <span style={{ color: "#5a8f3c", marginLeft: 6 }}>
+                  → {co2Draft} ppm
+                </span>
+              )}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div
+              style={{
+                flex: 1,
+                padding: "7px 12px",
+                borderRadius: 10,
+                background:
+                  data.co2 >= co2T
+                    ? "rgba(192,40,40,0.08)"
+                    : "rgba(74,158,74,0.07)",
+                border:
+                  "1px solid " +
+                  (data.co2 >= co2T
+                    ? "rgba(192,40,40,0.2)"
+                    : "rgba(74,158,74,0.15)"),
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: data.co2 >= co2T ? "#c02828" : "#4a9e4a",
+              }}
+            >
+              {data.co2 || "—"} ppm —{" "}
+              {data.co2 > 0
+                ? data.co2 >= co2T
+                  ? "⚠ ALARM"
+                  : "✓ OK"
+                : "waiting"}
             </div>
-            <button onClick={applyCo2} style={{
-              padding:'7px 16px',borderRadius:10,border:'none',cursor:'pointer',
-              fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.06em',
-              background:co2Applied?'#4a9e4a':co2Changed?'#5a8f3c':'rgba(80,60,30,0.08)',
-              color:co2Changed||co2Applied?'#fff':C.muted,transition:'all 0.2s',flexShrink:0,
-            }}>{co2Applied?'✓ Applied':'Apply'}</button>
+            <button
+              onClick={applyCo2}
+              style={{
+                padding: "7px 16px",
+                borderRadius: 10,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 10,
+                letterSpacing: "0.06em",
+                background: co2Applied
+                  ? "#4a9e4a"
+                  : co2Changed
+                    ? "#5a8f3c"
+                    : "rgba(80,60,30,0.08)",
+                color: co2Changed || co2Applied ? "#fff" : C.muted,
+                transition: "all 0.2s",
+                flexShrink: 0,
+              }}
+            >
+              {co2Applied ? "✓ Applied" : "Apply"}
+            </button>
           </div>
         </div>
 
         {/* PM2.5 Threshold */}
-        <div style={{background:C.surface,border:`1px solid ${pm25Changed?'#7c6bb044':C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow,transition:'border-color 0.2s'}}>
-          <div style={{marginBottom:14}}>
-            <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500,marginBottom:2}}>PM2.5 Alarm Threshold</div>
-            <div style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.1em'}}>Triggers RED LED + buzzer</div>
+        <div
+          style={{
+            background: C.surface,
+            border: `1px solid ${pm25Changed ? "#7c6bb044" : C.border}`,
+            borderRadius: 22,
+            padding: "22px 24px",
+            boxShadow: C.shadow,
+            transition: "border-color 0.2s",
+          }}
+        >
+          <div style={{ marginBottom: 14 }}>
+            <div
+              style={{
+                fontFamily: "'Space Grotesk',sans-serif",
+                fontSize: 14,
+                color: C.text,
+                fontWeight: 500,
+                marginBottom: 2,
+              }}
+            >
+              PM2.5 Alarm Threshold
+            </div>
+            <div
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+                letterSpacing: "0.1em",
+              }}
+            >
+              Triggers RED LED + buzzer
+            </div>
           </div>
-          <ThresholdSlider value={pm25Draft} onChange={setPm25Draft} min={12} max={100} step={1} color="#7c6bb0" unit="µg/m³"/>
-          <div style={{display:'flex',justifyContent:'space-between',marginTop:4,marginBottom:12}}>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>12 µg/m³</span>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>100 µg/m³</span>
-          </div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-            <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted}}>
-              Active: <span style={{color:C.textMid}}>{pm25T} µg/m³</span>
-              {pm25Changed&&<span style={{color:'#7c6bb0',marginLeft:6}}>→ {pm25Draft} µg/m³</span>}
+          <ThresholdSlider
+            value={pm25Draft}
+            onChange={setPm25Draft}
+            min={12}
+            max={100}
+            step={1}
+            color="#7c6bb0"
+            unit="µg/m³"
+          />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: 4,
+              marginBottom: 12,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+              }}
+            >
+              12 µg/m³
+            </span>
+            <span
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+              }}
+            >
+              100 µg/m³
             </span>
           </div>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <div style={{flex:1,padding:'7px 12px',borderRadius:10,background:data.pm25>=pm25T?'rgba(192,40,40,0.08)':'rgba(74,158,74,0.07)',border:'1px solid '+(data.pm25>=pm25T?'rgba(192,40,40,0.2)':'rgba(74,158,74,0.15)'),fontFamily:"'DM Mono',monospace",fontSize:9,color:data.pm25>=pm25T?'#c02828':'#4a9e4a'}}>
-              {data.pm25||'—'} µg/m³ — {data.pm25>0?(data.pm25>=pm25T?'⚠ ALARM':'✓ OK'):'waiting'}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: C.muted,
+              }}
+            >
+              Active: <span style={{ color: C.textMid }}>{pm25T} µg/m³</span>
+              {pm25Changed && (
+                <span style={{ color: "#7c6bb0", marginLeft: 6 }}>
+                  → {pm25Draft} µg/m³
+                </span>
+              )}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <div
+              style={{
+                flex: 1,
+                padding: "7px 12px",
+                borderRadius: 10,
+                background:
+                  data.pm25 >= pm25T
+                    ? "rgba(192,40,40,0.08)"
+                    : "rgba(74,158,74,0.07)",
+                border:
+                  "1px solid " +
+                  (data.pm25 >= pm25T
+                    ? "rgba(192,40,40,0.2)"
+                    : "rgba(74,158,74,0.15)"),
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 9,
+                color: data.pm25 >= pm25T ? "#c02828" : "#4a9e4a",
+              }}
+            >
+              {data.pm25 || "—"} µg/m³ —{" "}
+              {data.pm25 > 0
+                ? data.pm25 >= pm25T
+                  ? "⚠ ALARM"
+                  : "✓ OK"
+                : "waiting"}
             </div>
-            <button onClick={applyPm25} style={{
-              padding:'7px 16px',borderRadius:10,border:'none',cursor:'pointer',
-              fontFamily:"'DM Mono',monospace",fontSize:10,letterSpacing:'0.06em',
-              background:pm25Applied?'#4a9e4a':pm25Changed?'#7c6bb0':'rgba(80,60,30,0.08)',
-              color:pm25Changed||pm25Applied?'#fff':C.muted,transition:'all 0.2s',flexShrink:0,
-            }}>{pm25Applied?'✓ Applied':'Apply'}</button>
+            <button
+              onClick={applyPm25}
+              style={{
+                padding: "7px 16px",
+                borderRadius: 10,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "'DM Mono',monospace",
+                fontSize: 10,
+                letterSpacing: "0.06em",
+                background: pm25Applied
+                  ? "#4a9e4a"
+                  : pm25Changed
+                    ? "#7c6bb0"
+                    : "rgba(80,60,30,0.08)",
+                color: pm25Changed || pm25Applied ? "#fff" : C.muted,
+                transition: "all 0.2s",
+                flexShrink: 0,
+              }}
+            >
+              {pm25Applied ? "✓ Applied" : "Apply"}
+            </button>
           </div>
         </div>
 
         {/* Device Status */}
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow}}>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500,marginBottom:16}}>Device Status</div>
+        <div
+          style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 22,
+            padding: "22px 24px",
+            boxShadow: C.shadow,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Space Grotesk',sans-serif",
+              fontSize: 14,
+              color: C.text,
+              fontWeight: 500,
+              marginBottom: 16,
+            }}
+          >
+            Device Status
+          </div>
           {[
-            {k:'CO₂ sensor',   v:'SCD40 · I2C 0x62'},
-            {k:'Dust sensor',  v:'PMS5003T · UART'},
-            {k:'Display',      v:'SSD1306 OLED 128×64'},
-            {k:'LEDs',         v:'G:18 · Y:19 · R:23'},
-            {k:'Buzzer',       v:'GPIO 15 · passive'},
-            {k:'POST cadence', v:'every 5s'},
-            {k:'GET cadence',  v:'every 2s'},
-          ].map(({k,v})=>(
-            <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${C.border}`}}>
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.muted,letterSpacing:'0.08em'}}>{k}</span>
-              <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:C.textMid}}>{v}</span>
+            { k: "CO₂ sensor", v: "SCD40 · I2C 0x62" },
+            { k: "Dust sensor", v: "PMS5003T · UART" },
+            { k: "Display", v: "SSD1306 OLED 128×64" },
+            { k: "LEDs", v: "G:18 · Y:19 · R:23" },
+            { k: "Buzzer", v: "GPIO 15 · passive" },
+            { k: "POST cadence", v: "every 5s" },
+            { k: "GET cadence", v: "every 2s" },
+          ].map(({ k, v }) => (
+            <div
+              key={k}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "6px 0",
+                borderBottom: `1px solid ${C.border}`,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'DM Mono',monospace",
+                  fontSize: 9,
+                  color: C.muted,
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {k}
+              </span>
+              <span
+                style={{
+                  fontFamily: "'DM Mono',monospace",
+                  fontSize: 9,
+                  color: C.textMid,
+                }}
+              >
+                {v}
+              </span>
             </div>
           ))}
         </div>
 
         {/* Command Log */}
-        <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:22,padding:'22px 24px',boxShadow:C.shadow,display:'flex',flexDirection:'column'}}>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontSize:14,color:C.text,fontWeight:500,marginBottom:16}}>Command Log</div>
-          <div style={{flex:1,display:'flex',flexDirection:'column',gap:6,overflowY:'auto',maxHeight:240}}>
-            {log.map((e,i)=>(
-              <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start'}}>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:8,color:C.muted,flexShrink:0,marginTop:1}}>{e.t}</span>
-                <span style={{fontFamily:"'DM Mono',monospace",fontSize:9,color:i===0?C.text:C.muted,lineHeight:1.4}}>{e.msg}</span>
+        <div
+          style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 22,
+            padding: "22px 24px",
+            boxShadow: C.shadow,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'Space Grotesk',sans-serif",
+              fontSize: 14,
+              color: C.text,
+              fontWeight: 500,
+              marginBottom: 16,
+            }}
+          >
+            Command Log
+          </div>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              overflowY: "auto",
+              maxHeight: 240,
+            }}
+          >
+            {log.map((e, i) => (
+              <div
+                key={i}
+                style={{ display: "flex", gap: 10, alignItems: "flex-start" }}
+              >
+                <span
+                  style={{
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 8,
+                    color: C.muted,
+                    flexShrink: 0,
+                    marginTop: 1,
+                  }}
+                >
+                  {e.t}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'DM Mono',monospace",
+                    fontSize: 9,
+                    color: i === 0 ? C.text : C.muted,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {e.msg}
+                </span>
               </div>
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -1109,12 +3267,12 @@ function Controls({data, co2T, pm25T, setCo2T, setPm25T, deviceState}) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function buildMonthData(dailyApi) {
-  const now   = new Date();
-  const days  = [];
+  const now = new Date();
+  const days = [];
   for (let i = 41; i >= 0; i--) {
-    const d   = new Date(now);
+    const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
+    const key = d.toISOString().split("T")[0];
     const real = dailyApi[key];
     days.push({ date: d, score: real ? real.score : null, future: d > now });
   }
@@ -1122,104 +3280,198 @@ function buildMonthData(dailyApi) {
 }
 
 function buildHourlyData(history) {
-  const buckets = Array.from({length:24}, (_,h)=>({hour:h, co2:null, pm25:null, temp:null, hum:null, _co2:[],_pm25:[],_temp:[],_hum:[]}));
-  history.forEach(r => {
+  const buckets = Array.from({ length: 24 }, (_, h) => ({
+    hour: h,
+    co2: null,
+    pm25: null,
+    temp: null,
+    hum: null,
+    _co2: [],
+    _pm25: [],
+    _temp: [],
+    _hum: [],
+  }));
+  history.forEach((r) => {
     const h = new Date(r.ts).getHours();
-    if (r.co2  > 0) buckets[h]._co2.push(r.co2);
+    if (r.co2 > 0) buckets[h]._co2.push(r.co2);
     if (r.pm25 > 0) buckets[h]._pm25.push(r.pm25);
     if (r.temp > 0) buckets[h]._temp.push(r.temp);
-    if (r.hum  > 0) buckets[h]._hum.push(r.hum);
+    if (r.hum > 0) buckets[h]._hum.push(r.hum);
   });
-  return buckets.map(b=>{
-    const avg = arr => arr.length ? +(arr.reduce((a,c)=>a+c,0)/arr.length).toFixed(1) : null;
-    return { hour:b.hour, co2:avg(b._co2), pm25:avg(b._pm25), temp:avg(b._temp), hum:avg(b._hum) };
+  return buckets.map((b) => {
+    const avg = (arr) =>
+      arr.length
+        ? +(arr.reduce((a, c) => a + c, 0) / arr.length).toFixed(1)
+        : null;
+    return {
+      hour: b.hour,
+      co2: avg(b._co2),
+      pm25: avg(b._pm25),
+      temp: avg(b._temp),
+      hum: avg(b._hum),
+    };
   });
 }
 
 function App() {
-  const data  = useSensor();
+  const data = useSensor();
   const [tab, setTab] = useHashTab();
   const level = getLevel(data.co2, data.pm25);
 
-  const [co2T,        setCo2T]        = useState(1000);
-  const [pm25T,       setPm25T]       = useState(55);
-  const [deviceState, setDeviceState] = useState({ co2_threshold:1000, pm25_threshold:55, buzzer:0 });
-  const [score,       setScore]       = useState(null);
-  const [scoreLabel,  setScoreLabel]  = useState(null);
+  const [co2T, setCo2T] = useState(1000);
+  const [pm25T, setPm25T] = useState(55);
+  const [deviceState, setDeviceState] = useState({
+    co2_threshold: 1000,
+    pm25_threshold: 55,
+    buzzer: 0,
+  });
+  const [score, setScore] = useState(null);
+  const [scoreLabel, setScoreLabel] = useState(null);
 
-  const [monthData,    setMonthData]    = useState([]);
-  const [hourlyData,   setHourlyData]   = useState(Array.from({length:24},(_,h)=>({hour:h,co2:null,pm25:null,temp:null,hum:null})));
-  const [hasRealHourly,setHasRealHourly]= useState(false);
+  const [monthData, setMonthData] = useState([]);
+  const [hourlyData, setHourlyData] = useState(
+    Array.from({ length: 24 }, (_, h) => ({
+      hour: h,
+      co2: null,
+      pm25: null,
+      temp: null,
+      hum: null,
+    })),
+  );
+  const [hasRealHourly, setHasRealHourly] = useState(false);
 
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const prevAlarm = useRef(false);
   const alarmActive = data.co2 >= co2T || data.pm25 >= pm25T;
 
-  useEffect(()=>{
-    if(prevAlarm.current && !alarmActive) setBannerDismissed(false);
-    if(!prevAlarm.current && alarmActive) setBannerDismissed(false);
+  useEffect(() => {
+    if (prevAlarm.current && !alarmActive) setBannerDismissed(false);
+    if (!prevAlarm.current && alarmActive) setBannerDismissed(false);
     prevAlarm.current = alarmActive;
-  },[alarmActive]);
+  }, [alarmActive]);
 
-  useEffect(()=>{
-    apiFetch('/api/status').then(s=>{
-      if(s.state){
-        setCo2T(s.state.co2_threshold);
-        setPm25T(s.state.pm25_threshold);
-        setDeviceState(s.state);
-      }
-      if(s.score != null) { setScore(s.score); setScoreLabel(s.label); }
-    }).catch(()=>{});
-  },[]);
+  useEffect(() => {
+    apiFetch("/api/status")
+      .then((s) => {
+        if (s.state) {
+          setCo2T(s.state.co2_threshold);
+          setPm25T(s.state.pm25_threshold);
+          setDeviceState(s.state);
+        }
+        if (s.score != null) {
+          setScore(s.score);
+          setScoreLabel(s.label);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-  useEffect(()=>{
-    const poll=async()=>{
+  useEffect(() => {
+    const poll = async () => {
       try {
-        const s=await apiFetch('/api/status');
-        if(s.state){ setDeviceState(s.state); setCo2T(s.state.co2_threshold); setPm25T(s.state.pm25_threshold); }
-        if(s.score!=null){ setScore(s.score); setScoreLabel(s.label); }
-      } catch(e){}
+        const s = await apiFetch("/api/status");
+        if (s.state) {
+          setDeviceState(s.state);
+          setCo2T(s.state.co2_threshold);
+          setPm25T(s.state.pm25_threshold);
+        }
+        if (s.score != null) {
+          setScore(s.score);
+          setScoreLabel(s.label);
+        }
+      } catch (e) {}
     };
-    const t=setInterval(poll,5000);
-    return()=>clearInterval(t);
-  },[]);
+    const t = setInterval(poll, 5000);
+    return () => clearInterval(t);
+  }, []);
 
-  useEffect(()=>{
-    const fetch=async()=>{
+  useEffect(() => {
+    const fetch = async () => {
       try {
-        const daily=await apiFetch('/api/daily');
+        const daily = await apiFetch("/api/daily");
         setMonthData(buildMonthData(daily));
-      } catch(e){ setMonthData(buildMonthData({})); }
+      } catch (e) {
+        setMonthData(buildMonthData({}));
+      }
     };
     fetch();
-    const t=setInterval(fetch,60000);
-    return()=>clearInterval(t);
-  },[]);
+    const t = setInterval(fetch, 60000);
+    return () => clearInterval(t);
+  }, []);
 
-  useEffect(()=>{
-    apiFetch('/api/history').then(h=>{
-      const hist=h.history||[];
-      if(hist.length>5){
-        setHourlyData(buildHourlyData(hist));
-        setHasRealHourly(true);
-      }
-    }).catch(()=>{});
-  },[data.ts]);
+  useEffect(() => {
+    apiFetch("/api/history")
+      .then((h) => {
+        const hist = h.history || [];
+        if (hist.length > 5) {
+          setHourlyData(buildHourlyData(hist));
+          setHasRealHourly(true);
+        }
+      })
+      .catch(() => {});
+  }, [data.ts]);
 
   return (
-    <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',background:C.bg,overflow:'hidden'}}>
-      <NavBar tab={tab} setTab={setTab} level={level}/>
-      <AlarmBanner data={data} co2T={co2T} pm25T={pm25T} dismissed={bannerDismissed} onDismiss={()=>setBannerDismissed(true)}/>
-      <div style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
-        {tab==='overview' && <Overview data={data} score={score} scoreLabel={scoreLabel}/>}
-        {tab==='history'  && <div style={{flex:1,overflow:'hidden',display:'flex'}}><History data={data} monthData={monthData} hourlyData={hourlyData} hasRealHourly={hasRealHourly}/></div>}
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        background: C.bg,
+        overflow: "hidden",
+      }}
+    >
+      <NavBar tab={tab} setTab={setTab} level={level} />
+      <AlarmBanner
+        data={data}
+        co2T={co2T}
+        pm25T={pm25T}
+        dismissed={bannerDismissed}
+        onDismiss={() => setBannerDismissed(true)}
+      />
+      <div
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {tab === "overview" && (
+          <Overview data={data} score={score} scoreLabel={scoreLabel} />
+        )}
+        {tab === "history" && (
+          <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+            <History
+              data={data}
+              monthData={monthData}
+              hourlyData={hourlyData}
+              hasRealHourly={hasRealHourly}
+            />
+          </div>
+        )}
         {/* Controls stays mounted so command log state survives tab switches */}
-        <div style={{display:tab==='controls'?'flex':'none',flex:1,overflow:'hidden',flexDirection:'column'}}>
-          <Controls data={data} co2T={co2T} pm25T={pm25T} setCo2T={setCo2T} setPm25T={setPm25T} deviceState={deviceState}/>
+        <div
+          style={{
+            display: tab === "controls" ? "flex" : "none",
+            flex: 1,
+            overflow: "hidden",
+            flexDirection: "column",
+          }}
+        >
+          <Controls
+            data={data}
+            co2T={co2T}
+            pm25T={pm25T}
+            setCo2T={setCo2T}
+            setPm25T={setPm25T}
+            deviceState={deviceState}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
