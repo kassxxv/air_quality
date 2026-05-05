@@ -1479,7 +1479,14 @@ function NoDataDayContent({ day }) {
             2,
             ((d.co2 - minCo2) / (maxCo2 - minCo2 || 1)) * 36,
           );
-          const over = d.co2 >= 1000;
+          const barColor =
+            d.co2 >= 1500
+              ? "#c02828"
+              : d.co2 >= 1000
+                ? "#c96a1a"
+                : d.co2 >= 700
+                  ? "#c9941a"
+                  : "#5a8f3c";
           return (
             <div
               key={i}
@@ -1488,11 +1495,7 @@ function NoDataDayContent({ day }) {
                 flex: 1,
                 height: hPx,
                 borderRadius: "2px 2px 0 0",
-                background: over
-                  ? "#c02828"
-                  : d.co2 >= 800
-                    ? "#c9941a"
-                    : "#5a8f3c",
+                background: barColor,
                 opacity: 0.75,
               }}
             />
