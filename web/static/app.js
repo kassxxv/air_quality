@@ -743,7 +743,8 @@ function NavBar({ tab, setTab, level }) {
 // OVERVIEW  — fix: removed maxWidth constraint so it uses full width
 // ═══════════════════════════════════════════════════════════════════════════
 function Overview({ data, score, scoreLabel }) {
-  const isOffline = data.co2 === 0;
+  const connStatus = useConnectionStatus();
+  const isOffline = data.co2 === 0 || connStatus === 'offline';
   const level = isOffline ? "offline" : getLevel(data.co2, data.pm25);
   const hc = HERO[level];
   const airScore = isOffline
