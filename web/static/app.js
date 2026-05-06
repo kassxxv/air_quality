@@ -577,12 +577,11 @@ function LiveClock() {
   return <span>{t}</span>;
 }
 
-function NavBar({ tab, setTab, level }) {
+function NavBar({ tab, setTab, level, connStatus }) {
   const dot =
     { good: "#4a9e4a", warning: "#c9941a", poor: "#c96a1a", alarm: "#c02828" }[
       level
     ] || "#ccc";
-  const connStatus = useConnectionStatus();
   const mobile = useIsMobile();
   return (
     <header
@@ -742,8 +741,7 @@ function NavBar({ tab, setTab, level }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // OVERVIEW  — fix: removed maxWidth constraint so it uses full width
 // ═══════════════════════════════════════════════════════════════════════════
-function Overview({ data, score, scoreLabel }) {
-  const connStatus = useConnectionStatus();
+function Overview({ data, score, scoreLabel, connStatus }) {
   const isOffline = data.co2 === 0 || connStatus === "offline";
   const level = isOffline ? "offline" : getLevel(data.co2, data.pm25);
   const hc = HERO[level];
@@ -3321,6 +3319,7 @@ function App() {
   const data = useSensor();
   const [tab, setTab] = useHashTab();
   const level = getLevel(data.co2, data.pm25);
+  const connStatus = useConnectionStatus();
 
   const [co2T, setCo2T] = useState(1000);
   const [pm25T, setPm25T] = useState(55);
@@ -3426,7 +3425,7 @@ function App() {
         overflow: "hidden",
       }}
     >
-      <NavBar tab={tab} setTab={setTab} level={level} />
+      <NavBar tab={tab} setTab={setTab} level={level} connStatus={connStatus} />
       <AlarmBanner
         data={data}
         co2T={co2T}
@@ -3443,7 +3442,12 @@ function App() {
         }}
       >
         {tab === "overview" && (
-          <Overview data={data} score={score} scoreLabel={scoreLabel} />
+          <Overview
+            data={data}
+            score={score}
+            scoreLabel={scoreLabel}
+            connStatus={connStatus}
+          />
         )}
         {tab === "history" && (
           <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
