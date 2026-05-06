@@ -762,9 +762,8 @@ function Overview({ data, score, scoreLabel }) {
 
   const co2Pct = Math.min(98, ((data.co2 - 400) / 800) * 100);
   const scoreColor =
-    { good: "#4a9e4a", warning: "#c9941a", poor: "#c02828", alarm: "#c02828" }[
-      level
-    ] ?? "#6a6258";
+    { good: "#4a9e4a", warning: "#c9941a", danger: "#c02828" }[level] ??
+    "#6a6258";
   const mobile = useIsMobile();
 
   return (
